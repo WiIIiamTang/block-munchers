@@ -1,0 +1,11 @@
+Main Menu "bg_menu.png":
+<a href="https://www.freepik.com/vectors/background">Background vector created by freepik - www.freepik.com</a>
+
+InGame "bg_game.jpg":
+https://unsplash.com/photos/--L5r5aeoVE
+
+bgm.wav:
+ecrett music
+
+munch.wav:
+freesoundeffect.net
