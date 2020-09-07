@@ -7,6 +7,62 @@ ui elements mostly independent from camera movement.
 
 SOUNDS = generate_button_sound()
 
+class TextBox:
+    '''
+    Represents a box where text may be written.
+    '''
+    def __init__(self, x, y, width, height, initial_text):
+        self.rect = pygame.Rect(x, y, width, height)
+        self.initial_width = width
+        self.width_tracker = 0
+        self.color = (255, 255, 255)
+        self.alt_color = (129, 230, 179)
+        self.active = False
+        self.font = pygame.font.SysFont('Courier', 16)
+        self.rendered_text = self.font.render(initial_text, True, (0, 0, 0))
+        self.ready = False
+        self.text = initial_text
+        self.enable_write = True
+    
+    def draw(self, screen):
+        pygame.draw.rect(screen, self.color, self.rect)
+        screen.blit(self.rendered_text, (self.rect.x + 10, self.rect.y + 10))
+        
+    def update(self):
+        self.width_tracker = self.rect.width
+
+        self.rect.width = max(self.initial_width, self.rendered_text.get_width() + 20)
+        if self.rect.width - self.width_tracker != 0:
+            self.rect.x -= (self.rect.width - self.width_tracker) / 2
+    
+    def events(self, events):
+        if self.enable_write:
+            for event in events:
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if self.rect.collidepoint(event.pos):
+                        self.text = ''
+                        self.rendered_text = self.font.render('', True, (0, 0, 0))  
+                        self.active = not self.active
+                    else:
+                        self.active = False
+                
+                if self.active:
+                    self.color = (255, 255, 255)
+                else:
+                    self.color = self.alt_color
+                
+                if event.type == pygame.KEYDOWN and self.active:
+                    if event.key == pygame.K_ESCAPE:
+                        self.text = ''
+                    elif event.key == pygame.K_BACKSPACE:
+                        self.text = self.text[:-1]
+                        if self.rect.width - self.initial_width != 0:
+                            self.rect.x += (self.rect.width - self.width_tracker) / 2
+                    else:
+                        self.text += event.unicode
+
+        self.rendered_text = self.font.render(self.text, True, (0, 0, 0))
+
 class Button:
     '''
     Represents a clickable button.
@@ -163,6 +219,8 @@ class HealthBar(pygame.sprite.Sprite):
         pygame.draw.rect(screen, (255, 0, 0), self.rect)
         pygame.draw.rect(screen, (0, 255, 0), (self.rect.x, self.rect.y,
             player.health / (player.max_health/player.health_bar_width), self.rect.height))
+
+
 
 
 

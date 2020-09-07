@@ -50,13 +50,17 @@ class Player(pygame.sprite.Sprite):
 
         print(f'[Game] Player instance created at {x}, {y}')
     
-    def draw(self, screen, camera):
+    def draw(self, screen, camera, offset=(0, 0)):
+        new_rect = camera.apply_offset(self)
+        new_rect.x += offset[0]
+        new_rect.y += offset[1]
+
         if self.is_right:
-            screen.blit(self.right, camera.apply_offset(self))
+            screen.blit(self.right, new_rect)
         elif self.is_left:
-            screen.blit(self.left, camera.apply_offset(self))
+            screen.blit(self.left, new_rect)
         else:
-            screen.blit(self.front, camera.apply_offset(self))
+            screen.blit(self.front, new_rect)
         
         self.health_bar.draw(screen, self)
 
@@ -69,7 +73,7 @@ class Player(pygame.sprite.Sprite):
         # Print player's coordinates.
         #print(f' [Game-Player] Rect: {self.rect.x}, {self.rect.y}')
         
-    def update(self, clock, ground_level, gravity, deccel, blocks):
+    def update(self, clock, ground_level, gravity, deccel, blocks, move_x_limit=0):
         dt = clock.get_time() / 30
 
         #### Keys
@@ -101,13 +105,13 @@ class Player(pygame.sprite.Sprite):
 
         #### Move x, y
         # MOVE FIRST, then CHECK COLLISION AFTER
-
+        
         # moving player x-axis
-        if self.speed <= 0 and self.rect.x >= 0:
-            self.rect.x = max(self.rect.x + self.speed * dt, 0)
-            
-        elif self.speed > 0 and self.rect.x <= SIZE[0] - self.rect.width:
-            self.rect.x = min(self.rect.x + self.speed * dt, SIZE[0] - self.rect.width) 
+        if self.speed <= 0 and self.rect.x >= 0 + move_x_limit:
+            self.rect.x = max(self.rect.x + self.speed * dt, 0 + move_x_limit)
+
+        elif self.speed > 0 and self.rect.x <= move_x_limit + SIZE[0] - self.rect.width:
+            self.rect.x = min(self.rect.x + self.speed * dt, move_x_limit + SIZE[0] - self.rect.width) 
         
         # check collisions x-axis
         self.check_collisions(blocks, check_x=True)

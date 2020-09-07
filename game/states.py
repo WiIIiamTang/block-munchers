@@ -1,9 +1,12 @@
 import pygame
 import json
-from game.ui import Button, Tab, TabGroup
+import subprocess
+import threading
+from game.ui import Button, Tab, TabGroup, TextBox
 from game.sprites import *
 from game.camera import *
 from game.level_constructor import *
+from server.game_server import *
 from util.setup import get_path, get_config, generate_menu_sounds, generate_level_thumbnails
 
 
@@ -180,7 +183,7 @@ class Settings(State):
 
         self.fps_button = Button(SIZE[0]//2 - 120, 200, 240, 50, 'FPS', 'Calibri', 32,
          (66, 227, 245), (161, 232, 240))
-        self.camera_button = Button(SIZE[0]//2 - 255, 300, 510, 50, 'Cameras', 'Calibri', 17,
+        self.camera_button = Button(SIZE[0]//2 - 255, 300, 510, 50, 'Cameras', 'Calibri', 26,
         (66, 227, 245), (161, 232, 240))
         self.volume_button = Button(SIZE[0]//2 - 130, 400, 260, 50, 'Volume', 'Calibri', 32,
          (66, 227, 245), (161, 232, 240))
@@ -206,7 +209,7 @@ class Settings(State):
 
         self.fps_button.draw(screen, overwrite_text=f'FPS: {fps_text}')
         self.camera_button.draw(screen, 
-         overwrite_text=f'Use experimental cameras (Use on level stages for better experience): {"on" if self.experimental_cam else "off"}')
+         overwrite_text=f'Use smoother cameras on level stages: {"[ON]" if self.experimental_cam else "[OFF]"}')
         self.volume_button.draw(screen,
          overwrite_text=f'Music volume:{self.manager.volume}')
     
@@ -421,7 +424,7 @@ class PlayMenu(State):
          (66, 227, 245), (161, 232, 240))
         self.endless_button = Button(SIZE[0]//2 - 70, 300, 140, 50, 'Endless', 'Calibri', 32,
          (66, 227, 245), (161, 232, 240))
-        self.online_button = Button(SIZE[0]//2 - 70, 400, 140, 50, 'Online', 'Calibri', 32,
+        self.online_button = Button(SIZE[0]//2 - 85, 400, 170, 50, 'Multiplayer', 'Calibri', 32,
          (66, 227, 245), (161, 232, 240))
         self.back_button = Button(SIZE[0]//2 - 70, 500, 140, 50, 'Back', 'Calibri', 32,
          (66, 227, 245), (161, 232, 240))
@@ -452,7 +455,7 @@ class PlayMenu(State):
             self.manager.switch(EndlessSingle(images=self.IMAGES))
         
         if self.online_button.check_click(events):
-            print('online!')
+            self.manager.switch(MultiPlayerMenu(images=self.IMAGES))
         
         if self.back_button.check_click(events):
             self.manager.switch(Menu(images=self.IMAGES))
@@ -573,13 +576,7 @@ class EndlessSingle(SinglePlayerGame):
 
         self.ground = self.level_constructor.ground_level
 
-        c = get_config()
-        if c['experimental_camera']:
-            self.camera_f = camera_follow_center_auto_up
-        else:
-            self.camera_f = simple_camera_follow_auto_up
-
-        self.camera = Camera(self.camera_f, SIZE[0], SIZE[1], True, self.ground)
+        self.camera = Camera(simple_camera_follow_auto_up, SIZE[0], SIZE[1], True, self.ground)
         self.time = pygame.time.get_ticks()
 
     def draw_screen(self, screen):
@@ -661,7 +658,7 @@ class LevelSingle(SinglePlayerGame):
             SOUNDS['gameover'].play()
             pygame.time.wait(3000)
             self.manager.music.play(-1)
-            self.manager.switch(GameOver(images=self.IMAGES, prev_game='endless-single', player=self.player))
+            self.manager.switch(GameOver(images=self.IMAGES, prev_game='level-single', player=self.player))
 
         for event in events:
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
@@ -722,3 +719,217 @@ class Index(SinglePlayerGame):
         for event in events:
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 self.manager.switch(Paused(images=self.IMAGES, state=self, from_index=True))
+
+
+class MultiPlayerMenu(State):
+    '''
+    Represents the menu where you start muliplayer games.
+    '''
+    def __init__(self, name='Multiplayer menu', images={}):
+        super().__init__(name=name, images=images)
+        self.image = self.IMAGES['menu']
+        self.title_font = pygame.font.SysFont('Calibri', 64)
+        self.button_font = pygame.font.SysFont('Calibri', 32)
+        self.title = self.title_font.render('Multiplayer', True, (218, 242, 245))
+        self.title_size = self.title.get_size()
+
+        self.connect_button = Button(70, 300, 170, 50, 'Connect', 'Calibri', 32,
+         (66, 227, 245), (161, 232, 240))
+        self.host_button = Button(70, 400, 170, 50, 'Host', 'Calibri', 32,
+         (66, 227, 245), (161, 232, 240))
+        self.start_button = Button(500, 380, 250, 80, 'Start', 'Calibri', 32,
+         (66, 227, 245), (161, 232, 240))
+        self.ready_button = Button(500, 480, 250, 80, 'Ready', 'Calibri', 32,
+         (66, 227, 245), (161, 232, 240))
+        self.back_button = Button(70, 500, 150, 50, 'Quit', 'Calibri', 32,
+         (66, 227, 245), (161, 232, 240))
+
+        self.buttons = [
+            self.back_button
+        ]
+
+        self.active_client = False
+        self.active_server = False
+
+        self.instructions = 'Enter {ip}:{port} right here. Then click the host/connect buttons.'
+        self.text_box = TextBox(SIZE[0]//2 - 125, 200, 250, 40, self.instructions)
+        self.name_box = TextBox(SIZE[0]//2 - 125, 150, 250, 40, 'Type name here.')
+        self.status_box = TextBox(500, 300, 250, 40, 'This will show connected players.')
+        self.quit_box = TextBox(255, 510, 250, 40, '<<< Quit to reset and exit out of any hosted/joined servers!')
+
+        self.status_box.enable_write = False
+        self.quit_box.enable_write = False
+        self.quit_box.font = pygame.font.SysFont('Calibri', 12)
+
+        self.draw_quit_box = False
+
+        self.players_in_room = {}
+        self.full = False
+        
+        self.server = None
+        self.client = None
+        self.to_send = {}
+    
+    def host(self):
+        job = threading.Thread(target=self.server.handle_connections, daemon=True)
+        job.start()
+
+    def connect_client(self):
+        try:
+            self.id = int(self.client.connect())
+            self.active_client = True
+        except:
+            pass
+
+    def draw_screen(self, screen):
+        screen.blit(self.image, (0, 0))
+        screen.blit(self.title, (SIZE[0]//2 - self.title_size[0]//2, 50))
+
+        self.text_box.draw(screen)
+        self.name_box.draw(screen)
+        self.status_box.draw(screen)
+        if self.draw_quit_box:
+            self.quit_box.draw(screen)
+
+        for b in self.buttons:
+            b.draw(screen)
+        
+        self.host_button.draw(screen, overwrite_text=f'{"(Hosting)" if self.active_server else "Host"}')
+        self.connect_button.draw(screen, overwrite_text=f'{"(Connected)" if self.active_client else "Connect"}')
+
+        if self.full:
+            self.start_button.draw(screen)
+            self.ready_button.draw(screen)
+        
+        
+        
+    def update_objects(self, clock):
+        self.text_box.update()
+        self.name_box.update()
+        self.status_box.update()
+        if self.draw_quit_box:
+            self.quit_box.update()
+
+        if self.active_client:
+            try:
+                self.to_send['type'] = 'menu'
+                self.to_send['name'] = self.name_box.text
+                reply = self.client.update(self.to_send)
+                self.players_in_room = reply['players']
+                self.full = reply['full']
+                #print(self.id)
+                #print('[Game] Client got reply', reply)
+                #print(full, self.id not in self.players_in_room.keys())
+
+                if self.full and self.id not in self.players_in_room.keys():
+                    self.status_box.text = 'That room is already full!'
+                    self.active_client = False
+                else:
+                    self.status_box.text = ' | '.join([name for name in self.players_in_room.values()])
+            except Exception as e:
+                self.status_box.font = pygame.font.SysFont('Courier', 14)
+                self.status_box.text = '[ERROR] Connection to server interrupted'
+                self.full = False
+            
+
+    def handle_events(self, events):
+        self.text_box.events(events)
+        self.name_box.events(events)
+        self.status_box.events(events)
+        if self.draw_quit_box:
+            self.quit_box.events(events)
+
+        if self.connect_button.check_click(events):
+            if not self.active_client:
+                if self.text_box.text:
+                    data = self.text_box.text.strip().split(':')
+                    try:
+                        data[0] = '127.0.0.1' if not data[0] else data[0]
+                        self.client = Client(ip=data[0], port=int(data[1]))
+                        self.connect_client()
+
+                        self.name_box.enable_write = False
+                        print('[Game] Connected to', data[0])
+                    except Exception as e:
+                        self.text_box.text = f'{type(e)}'
+
+                else:
+                    self.text_box.text = 'No address input'
+
+        if self.host_button.check_click(events):
+            if not self.active_server:
+                if self.text_box.text:
+                    data = self.text_box.text.strip().split(':')
+                    try:
+                        self.server = Server(ip=data[0], port=int(data[1]))
+                        self.host()
+
+                        self.active_server = True
+                        #self.text_box.enable_write = False
+
+                    except Exception as e:
+                        self.text_box.text = f'{type(e)}'
+                        print(e)
+                else:
+                    self.text_box.text = 'No address input'
+
+        if self.back_button.check_click(events):
+            if self.active_server:
+                self.server.running = False
+                self.server.shutdown()
+            if self.active_client:
+                self.client.close()
+            self.manager.switch(PlayMenu(images=self.IMAGES))
+        
+        if self.full:
+            if self.ready_button.check_click(events):
+                print(f'send player {self.id} ready!!')
+            if self.start_button.check_click(events):
+                self.manager.switch(EndlessMultiPlayer(images=self.IMAGES, client=self.client, server=self.server, id=self.id))
+        
+        if self.back_button.check_area():
+            self.draw_quit_box = True
+        else:
+            self.draw_quit_box = False
+
+
+
+class EndlessMultiPlayer(State):
+    '''
+    Represents the multiplayer in-game state.
+    '''
+    def __init__(self, name='Endless multi player', images={}, client=None, server=None, id=-1):
+        super().__init__(name=name, images=images)
+        self.image = self.IMAGES['game']
+
+        #tmp
+        self.ground = 400
+        self.gravity = 1
+        self.deccel = 2
+        self.blocks = pygame.sprite.Group()
+        self.player = Player(x=SIZE[0]//2, y=50, width=32, height=32, speed=0, accel=3, jump_accel=30)
+
+        self.camera = Camera(camera_follow_center_vertical_lock, SIZE[0], SIZE[1], True, self.ground)
+        self.client = client
+        self.server = server
+
+        self.id = id
+        self.to_send = {'type' : 'ingame', 'players' : { self.id : ''}}
+
+        
+
+    def draw_screen(self, screen):
+        screen.blit(self.image, (0, 0))
+
+        self.player.draw(screen, self.camera)
+    
+    def update_objects(self, clock):
+        self.player.update(clock, self.ground, self.gravity, self.deccel, self.blocks)
+        self.camera.update_camera(self.player, clock)
+
+        print(self.client.update(self.to_send))
+        
+        
+
+    def handle_events(self, events):
+        self.player.events(events, self.blocks, self.camera)
