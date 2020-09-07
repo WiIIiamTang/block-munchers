@@ -36,6 +36,8 @@ class Player(pygame.sprite.Sprite):
         self.score = 0
         self.score_font = pygame.font.SysFont('Calibri', 24, bold=True, italic=True)
 
+        self.win = False
+
         self.extensions = {
             'up' : Extension(x+width//2, y+5),
             'down' : Extension(x+width//2, y+height+5),
@@ -221,7 +223,19 @@ class Block(pygame.sprite.Sprite):
         super().__init__()
         self.IMAGES = generate_block_images()
         self.health = 1
-        self.type = -1
+        self.type = -111
+        self.god = False
+
+    @classmethod
+    def construct_block_from_type(cls, b, x, y, width, height):
+        if b == 0:
+            return StandardBlock(x, y, width, height)
+        elif b == 1:
+            return WinBlock(x, y, width, height)
+        elif b == 99:
+            return InvisBlock(x, y, width, height)
+        else:
+            return None
 
     def draw(self, screen, camera):
         pass
@@ -255,11 +269,14 @@ class StandardBlock(Block):
         screen.blit(self.image, camera.apply_offset(self))
     
     def hit_interaction(self, player):
-        self.health -= 1
-        player.health -= 10
-        player.score += 300
-        
-        return self.broken()
+        if not self.god:
+            self.health -= 1
+            player.health -= 10
+            player.score += 300
+            
+            return self.broken()
+        else:
+            return False
 
 class InvisBlock(Block):
     '''
@@ -270,17 +287,38 @@ class InvisBlock(Block):
     def __init__(self, x, y, width, height):
         super().__init__()
         self.rect = pygame.Rect(x, y, width, height)
-        self.image = self.IMAGES['invis']
-        #self.image = pygame.Surface((100, 100))
+        #self.image = self.IMAGES['invis']
+        self.image = pygame.Surface((100, 100))
         self.health = 99999
         self.type = 99
-    
+        
     def draw(self, screen, camera):
         screen.blit(self.image, camera.apply_offset(self))
     
     def hit_interaction(self, player):
         return False
+
+class WinBlock(Block):
+    '''
+    Reach this block to win the game level.
+    '''
+    def __init__(self, x, y, width, height):
+        super().__init__()
+        self.rect = pygame.Rect(x, y, width, height)
+        self.image = self.IMAGES['win']
+        self.health = 99999
+        self.type = 1
     
+    def draw(self, screen, camera):
+        screen.blit(self.image, camera.apply_offset(self))
+    
+    def hit_interaction(self, player):
+        if not self.god:
+            player.score += 5000
+            player.win = True
+            return True
+        else:
+            return False
     
 
     

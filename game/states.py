@@ -3,7 +3,9 @@ import json
 from game.ui import Button, Tab, TabGroup
 from game.sprites import *
 from game.camera import *
+from game.level_constructor import *
 from util.setup import get_path, get_config, generate_menu_sounds, generate_level_thumbnails
+
 
 
 c = get_config()
@@ -18,7 +20,8 @@ class State():
         self.name = name
         self.IMAGES = images
         self.game_types = {
-            'endless-single' : State.make_endless_single
+            'endless-single' : State.make_endless_single,
+            'level-single' : State.make_level_single
         }
 
     def __str__(self):
@@ -34,8 +37,12 @@ class State():
         raise NotImplementedError
     
     @staticmethod
-    def make_endless_single(images):
+    def make_endless_single(images, level=None):
         return EndlessSingle(images=images)
+    
+    @staticmethod
+    def make_level_single(images, level):
+        return LevelSingle(images=images, level=level)
 
 class StateManager():
     '''
@@ -101,7 +108,7 @@ class Menu(State):
             self.manager.switch(Help(images=self.IMAGES))
         
         if self.index_button.check_click(events):
-            print('in-game index instance!')
+            self.manager.switch(Index(images=self.IMAGES))
         
         if self.settings_button.check_click(events):
             self.manager.switch(Settings(images=self.IMAGES))
@@ -173,7 +180,7 @@ class Settings(State):
 
         self.fps_button = Button(SIZE[0]//2 - 120, 200, 240, 50, 'FPS', 'Calibri', 32,
          (66, 227, 245), (161, 232, 240))
-        self.camera_button = Button(SIZE[0]//2 - 250, 300, 500, 50, 'Cameras', 'Calibri', 24,
+        self.camera_button = Button(SIZE[0]//2 - 255, 300, 510, 50, 'Cameras', 'Calibri', 17,
         (66, 227, 245), (161, 232, 240))
         self.volume_button = Button(SIZE[0]//2 - 130, 400, 260, 50, 'Volume', 'Calibri', 32,
          (66, 227, 245), (161, 232, 240))
@@ -199,7 +206,7 @@ class Settings(State):
 
         self.fps_button.draw(screen, overwrite_text=f'FPS: {fps_text}')
         self.camera_button.draw(screen, 
-         overwrite_text=f'Use experimental cameras (may break game): {"on" if self.experimental_cam else "off"}')
+         overwrite_text=f'Use experimental cameras (Use on level stages for better experience): {"on" if self.experimental_cam else "off"}')
         self.volume_button.draw(screen,
          overwrite_text=f'Music volume:{self.manager.volume}')
     
@@ -263,7 +270,7 @@ class Paused(State):
     '''
     Represents the pause menu when in-game.
     '''
-    def __init__(self, name='Pause menu', images={}, state=None):
+    def __init__(self, name='Pause menu', images={}, state=None, from_index=False):
         super().__init__(name=name, images=images)
         SOUNDS['pause'].play()
         
@@ -272,7 +279,7 @@ class Paused(State):
         self.button_font = pygame.font.SysFont('Calibri', 32)
         self.title = self.title_font.render('Paused', True, (218, 242, 245))
         self.title_size = self.title.get_size()
-
+        self.from_index = from_index
         self.paused_game = state
 
         self.resume_button = Button(SIZE[0]//2 - 120, 200, 240, 50, 'Resume', 'Calibri', 32,
@@ -301,13 +308,16 @@ class Paused(State):
             self.manager.switch(self.paused_game)
         
         if self.quit_button.check_click(events):
-            self.manager.switch(PlayMenu(images=self.IMAGES))
+            if not self.from_index:
+                self.manager.switch(PlayMenu(images=self.IMAGES))
+            else:
+                self.manager.switch(Menu(images=self.IMAGES))
 
 class GameOver(State):
     '''
     Represents the game over menu when the player fails.
     '''
-    def __init__(self, name='Game over menu', images={}, prev_game=''):
+    def __init__(self, name='Game over menu', images={}, prev_game='', player=None):
         super().__init__(name=name, images=images)
         self.image = self.IMAGES['pause']
         self.title_font = pygame.font.SysFont('Calibri', 64)
@@ -315,6 +325,7 @@ class GameOver(State):
         self.title = self.title_font.render('Game Over', True, (241, 0, 50))
         self.title_size = self.title.get_size()
 
+        self.player = player
         self.prev_game = prev_game
 
         self.restart_button = Button(SIZE[0]//2 - 120, 200, 240, 50, 'Restart', 'Calibri', 32,
@@ -334,6 +345,9 @@ class GameOver(State):
 
         for b in self.buttons:
             b.draw(screen)
+        
+        screen.blit(self.player.score_font.render(f'Final score:{self.player.score}', 1, (255, 23, 23)), (SIZE[0]//2-125, 125))
+        screen.blit(self.player.front, (150, 300))
 
     def update_objects(self, clock):
         pass
@@ -344,6 +358,52 @@ class GameOver(State):
         
         if self.quit_button.check_click(events):
             self.manager.switch(Menu(images=self.IMAGES))
+
+class Win(State):
+    '''
+    Represents the win menu when the player fails. Is similar to the game over.
+    '''
+    def __init__(self, name='Win menu', images={}, prev_game='', player=None, level=0):
+        super().__init__(name=name, images=images)
+        self.image = self.IMAGES['pause']
+        self.title_font = pygame.font.SysFont('Calibri', 64)
+        self.button_font = pygame.font.SysFont('Calibri', 32)
+        self.title = self.title_font.render('Win!', True, (241, 0, 50))
+        self.title_size = self.title.get_size()
+        self.level = level
+        self.player = player
+        self.prev_game = prev_game
+
+        self.restart_button = Button(SIZE[0]//2 - 120, 200, 240, 50, 'Restart', 'Calibri', 32,
+         (66, 227, 245), (161, 232, 240))
+        self.quit_button = Button(SIZE[0]//2 - 120, 300, 240, 50, 'Quit', 'Calibri', 32,
+         (66, 227, 245), (161, 232, 240))
+
+        self.buttons = []
+        self.buttons.extend([
+            self.restart_button,
+            self.quit_button
+        ])
+    
+    def draw_screen(self, screen):
+        screen.blit(self.image, (0, 0))
+        screen.blit(self.title, (SIZE[0]//2 - self.title_size[0]//2, 50))
+
+        for b in self.buttons:
+            b.draw(screen)
+        
+        screen.blit(self.player.score_font.render(f'Final score:{self.player.score}', 1, (255, 23, 23)), (SIZE[0]//2-125, 125))
+        screen.blit(self.player.front, (150, 300))
+
+    def update_objects(self, clock):
+        pass
+
+    def handle_events(self, events):
+        if self.restart_button.check_click(events):
+            self.manager.switch(self.game_types[self.prev_game](images=self.IMAGES, level=self.level))
+        
+        if self.quit_button.check_click(events):
+            self.manager.switch(PlayMenu(images=self.IMAGES))
 
 class PlayMenu(State):
     '''
@@ -473,7 +533,7 @@ class LevelSelect(State):
         
         l = self.level_tabs.events(events)
         if l != -1:
-            print('going to level', l)
+            self.manager.switch(LevelSingle(images=self.IMAGES, level=str(l)))
 
 
 
@@ -484,12 +544,12 @@ class SinglePlayerGame(State):
     def __init__(self, name=None, images={}):
         super().__init__(name=name, images=images)
         self.image = self.IMAGES['game']
-        self.player = Player(x=SIZE[0]//2, y=100, width=32, height=32, speed=0, accel=3, jump_accel=15)
-        self.ground = 800
+        self.player = Player(x=SIZE[0]//2, y=50, width=32, height=32, speed=0, accel=3, jump_accel=15)
+        self.ground = 800 # will be changed in levels.
         self.gravity = 1
         self.deccel = 2
 
-        print(f'[Game] Single player game created with ground {self.ground}, gravity {self.gravity}, deccel {self.deccel}')
+        print(f'[Game] Single player game created with gravity {self.gravity}, deccel {self.deccel}')
     
     def draw_screen(self, screen):
         pass
@@ -507,14 +567,11 @@ class EndlessSingle(SinglePlayerGame):
     '''
     def __init__(self, name='Endless single player', images={}):
         super().__init__(name=name, images=images)
-        self.ground = 100000000
         self.blocks = pygame.sprite.Group()
+        self.level_constructor = LevelConstructor.get_endless()
+        self.blocks = self.level_constructor.get_random_chunk()
 
-        for i in range(8):
-            for j in range(-2, 7):
-                self.blocks.add(StandardBlock(i*100, 800-(j*100), 100, 100))
-        
-        self.blocks.add(InvisBlock(-100, 200, 100, 100))
+        self.ground = self.level_constructor.ground_level
 
         c = get_config()
         if c['experimental_camera']:
@@ -537,15 +594,7 @@ class EndlessSingle(SinglePlayerGame):
         self.player.update(clock, self.ground, self.gravity, self.deccel, self.blocks)
         self.camera.update_camera(self.player, clock)
 
-        for block in self.blocks:
-            if block.check_position(self.camera):
-                if block.type == 99:
-                    for i in range(8):
-                        for j in range(-2, 7):
-                            self.blocks.add(StandardBlock(i*100, 800-(j*100) - self.camera.rect.y + 599, 100, 100))
-                    self.blocks.add(InvisBlock(-100, 200 - self.camera.rect.y + 599, 100, 100))
-                
-                block.kill()
+        self.blocks = self.level_constructor.update_block_chunks(self.camera)
         
         if pygame.time.get_ticks() - self.time >= 10 * 1000:
             self.time = pygame.time.get_ticks()
@@ -559,8 +608,117 @@ class EndlessSingle(SinglePlayerGame):
             SOUNDS['gameover'].play()
             pygame.time.wait(3000)
             self.manager.music.play(-1)
-            self.manager.switch(GameOver(images=self.IMAGES, prev_game='endless-single'))
+            self.manager.switch(GameOver(images=self.IMAGES, prev_game='endless-single', player=self.player))
 
         for event in events:
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 self.manager.switch(Paused(images=self.IMAGES, state=self))
+    
+
+class LevelSingle(SinglePlayerGame):
+    '''
+    Represents a level of a single player game.
+    '''
+    def __init__(self, name='Level', images={}, level='0'):
+        super().__init__(name=name, images=images)
+        self.level = level
+        self.blocks = pygame.sprite.Group()
+        self.level_constructor = LevelConstructor.get_level(self.level)
+        self.blocks = self.level_constructor.blocks
+        self.ground = self.level_constructor.ground_level
+        
+        self.restart_button = Button(50, 20, 50, 50, text='Restart', size=18, color=(200, 150, 0), alt_color=(255, 255, 150))
+
+        c = get_config()
+        if c['experimental_camera']:
+            self.camera_f = camera_follow_center_vertical_lock
+        else:
+            self.camera_f = simple_camera_follow_center
+
+        self.camera = Camera(self.camera_f, SIZE[0], SIZE[1], True, self.ground)
+        self.time = pygame.time.get_ticks()
+
+    def draw_screen(self, screen):
+        screen.blit(self.image, (0, 0))
+
+        for block in self.blocks:
+            block.draw(screen, self.camera)
+
+        self.player.draw(screen, self.camera)
+        self.restart_button.draw(screen)
+    
+    def update_objects(self, clock):
+        self.player.update(clock, self.ground, self.gravity, self.deccel, self.blocks)
+        self.camera.update_camera(self.player, clock)
+        
+        if pygame.time.get_ticks() - self.time >= 10 * 1000:
+            self.time = pygame.time.get_ticks()
+            self.camera.increment += 1
+
+    def handle_events(self, events):
+        if self.player.events(events, self.blocks, self.camera):
+            self.manager.music.stop()
+            SOUNDS['gameover'].play()
+            pygame.time.wait(3000)
+            self.manager.music.play(-1)
+            self.manager.switch(GameOver(images=self.IMAGES, prev_game='endless-single', player=self.player))
+
+        for event in events:
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                self.manager.switch(Paused(images=self.IMAGES, state=self))
+            if (event.type == pygame.KEYDOWN and event.key == pygame.K_r) or self.restart_button.check_click(events):
+                self.manager.switch(LevelSingle(images=self.IMAGES, level=self.level))
+        
+        if self.player.win:
+            self.manager.switch(Win(images=self.IMAGES, prev_game='level-single', player=self.player, level=self.level))
+
+
+class Index(SinglePlayerGame):
+    '''
+    Represents the index menu showing block types.
+    '''
+    def __init__(self, name='Index', images={}, level='9999'):
+        super().__init__(name=name, images=images)
+        self.player = Player(x=SIZE[0]//2, y=50, width=32, height=32, speed=0, accel=3, jump_accel=30)
+        self.gravity = 2
+        self.player.max_speed = 15
+        self.level = level
+        self.blocks = pygame.sprite.Group()
+        self.level_constructor = LevelConstructor.get_level(self.level)
+        self.blocks = self.level_constructor.blocks
+        self.ground = self.level_constructor.ground_level
+
+        c = get_config()
+        if c['experimental_camera']:
+            self.camera_f = camera_follow_center_vertical_lock
+        else:
+            self.camera_f = simple_camera_follow_center
+
+        self.camera = Camera(self.camera_f, SIZE[0], SIZE[1], True, self.ground)
+        self.time = pygame.time.get_ticks()
+
+        for b in self.blocks:
+            b.god = True
+
+    def draw_screen(self, screen):
+        screen.blit(self.image, (0, 0))
+
+        for block in self.blocks:
+            block.draw(screen, self.camera)
+
+        self.player.draw(screen, self.camera)
+    
+    def update_objects(self, clock):
+        self.player.update(clock, self.ground, self.gravity, self.deccel, self.blocks)
+        self.camera.update_camera(self.player, clock)
+        
+        if pygame.time.get_ticks() - self.time >= 10 * 1000:
+            self.time = pygame.time.get_ticks()
+            self.camera.increment += 1
+
+    def handle_events(self, events):
+        self.player.events(events, self.blocks, self.camera)
+
+        for event in events:
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                self.manager.switch(Paused(images=self.IMAGES, state=self, from_index=True))

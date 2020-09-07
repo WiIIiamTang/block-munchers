@@ -38,7 +38,8 @@ def generate_level_thumbnails():
 def generate_block_images():
     images = {
         'normal' : pygame.image.load(get_path('res/sprites/block_big1.png')),
-        'invis' : pygame.image.load(get_path('res/sprites/transparent.png'))
+        'invis' : pygame.image.load(get_path('res/sprites/transparent.png')),
+        'win' : pygame.image.load(get_path('res/sprites/win_block.png'))
     }
 
     return images
