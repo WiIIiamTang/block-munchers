@@ -4,7 +4,6 @@ import sys
 import pickle
 import threading
 import time
-from game.sprites import *
 
 class Client:
     '''
@@ -75,13 +74,18 @@ class Server:
         self.player_names = {}
         self.server_data = {
             'full' : False,
+            'mode' : True,
             'players' : {},
+            'players-endless': {},
+            'players-race': {},
             'blocks' : set(),
             'ready' : {},
             'start' : False,
             'started' : {},
             'p1' : 0,
-            'p2' : 0
+            'p2' : 0,
+            'quit' : {},
+            'win' : {}
         }
 
         try:
@@ -145,6 +149,12 @@ class Server:
             
                 if not received:
                     self.server_data['players'].pop(pid)
+                    self.server_data['players-endless'].pop(pid)
+                    self.server_data['players-race'].pop(pid)
+                    self.server_data['ready'].pop(pid)
+                    self.server_data['started'].pop(pid)
+                    self.server_data['quit'].pop(pid)
+                    self.server_data['win'].pop(pid)
                     print('Did not receive data from client')
                     break
 
@@ -164,18 +174,23 @@ class Server:
                     
                     self.server_data['started'][pid] = received['started']
 
+                    if received['changemode']:
+                        self.server_data['mode'] = received['mode']
+
 
                 # Ingame updates
                 # note there are only two players in the game.
-                elif received['type'] == 'ingame':
+                elif received['type'] == 'ingame-race':
                     if received['setup']:
                         print('[Server] Setting up for', pid)
+                        self.server_data['quit'][pid] = False
+                        self.server_data['win'][pid] = False
                         alternate = True
                         for key, value in self.server_data['players'].items():
                             if alternate:
-                                self.server_data['players'][key] = {
+                                self.server_data['players-race'][key] = {
                                     'x' : 64,
-                                    'y' : 0,
+                                    'y' : 1950,
                                     'width' : 32,
                                     'height' : 32,
                                     'speed' : 0,
@@ -186,9 +201,9 @@ class Server:
                                 self.server_data['p1'] = key
                                 alternate = not alternate
                             else:
-                                self.server_data['players'][key] = {
-                                    'x' : SIZE[0]-64,
-                                    'y' : 0,
+                                self.server_data['players-race'][key] = {
+                                    'x' : 64,
+                                    'y' : 1950,
                                     'width' : 32,
                                     'height' : 32,
                                     'speed' : 0,
@@ -203,10 +218,16 @@ class Server:
                         #print('[Server] blocks', self.server_data['blocks'])
                         
                     else:
-                        self.server_data['players'][pid]['x'] = received['player']['x']
-                        self.server_data['players'][pid]['y'] = received['player']['y']
+                        self.server_data['players-race'][pid]['x'] = received['player']['x']
+                        self.server_data['players-race'][pid]['y'] = received['player']['y']
 
                         self.server_data['blocks'].intersection_update(received['blocks'])
+
+                        self.server_data['quit'][pid] = received['quit']
+                        self.server_data['win'][pid] = received['win']
+                
+                elif received['type'] == 'ingame-endless':
+                    self.server_data['players-endless'][pid] = [received['player-y'], received['player-score'], self.player_names[pid], received['lose']]
 
                 
                 
@@ -215,6 +236,12 @@ class Server:
             
             except Exception as e:
                 self.server_data['players'].pop(pid)
+                self.server_data['players-endless'].pop(pid)
+                self.server_data['players-race'].pop(pid)
+                self.server_data['ready'].pop(pid)
+                self.server_data['started'].pop(pid)
+                self.server_data['quit'].pop(pid)
+                self.server_data['win'].pop(pid)
                 print('Interrupted, breaking', pid)
                 print(e)
                 break

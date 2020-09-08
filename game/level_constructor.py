@@ -20,6 +20,7 @@ class LevelConstructor:
             '7' : 1000,
             '8' : 1000,
             '9' : 1000,
+            '10' : 2000,
             '9999' : 2100
         }
         self.levels = LEVELS

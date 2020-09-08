@@ -54,6 +54,8 @@ class TextBox:
                 if event.type == pygame.KEYDOWN and self.active:
                     if event.key == pygame.K_ESCAPE:
                         self.text = ''
+                    elif event.key == pygame.K_RETURN:
+                        return self.text
                     elif event.key == pygame.K_BACKSPACE:
                         self.text = self.text[:-1]
                         if self.rect.width - self.initial_width != 0:
@@ -66,6 +68,7 @@ class TextBox:
                             self.text += event.unicode
 
         self.rendered_text = self.font.render(self.text, True, (0, 0, 0))
+        return ''
 
 class Button:
     '''

@@ -51,7 +51,7 @@ class Player(pygame.sprite.Sprite):
 
         print(f'[Game] Player instance created at {x}, {y}')
     
-    def draw(self, screen, camera, offset=(0, 0), name=False, score_location=(SIZE[0]-160, 30), draw_health=True):
+    def draw(self, screen, camera, offset=(0, 0), name=False, score_location=(SIZE[0]-160, 30), draw_health=True, draw_score=True):
         new_rect = camera.apply_offset(self)
         new_rect.x += offset[0]
         new_rect.y += offset[1]
@@ -66,7 +66,8 @@ class Player(pygame.sprite.Sprite):
         if draw_health:
             self.health_bar.draw(screen, self)
 
-        screen.blit(self.score_font.render(f'{self.name}-Score:{self.score}', 1, (255, 23, 23)), score_location)
+        if draw_score:
+            screen.blit(self.score_font.render(f'{self.name} Score:{self.score}', 1, (255, 23, 23)), score_location)
 
         if name:
             screen.blit(self.name_font.render(self.name, 1, (255, 0, 0)), (new_rect.x, new_rect.y - 20))
@@ -77,7 +78,7 @@ class Player(pygame.sprite.Sprite):
         # Print player's coordinates.
         #print(f' [Game-Player] Rect: {self.rect.x}, {self.rect.y}')
         
-    def update(self, clock, ground_level, gravity, deccel, blocks, move_x_limit=0):
+    def update(self, clock, ground_level, gravity, deccel, blocks, move_x_limit_right=0, move_x_limit_left=0):
         dt = clock.get_time() / 30
 
         #### Keys
@@ -111,11 +112,11 @@ class Player(pygame.sprite.Sprite):
         # MOVE FIRST, then CHECK COLLISION AFTER
         
         # moving player x-axis
-        if self.speed <= 0 and self.rect.x >= 0 + move_x_limit:
-            self.rect.x = max(self.rect.x + self.speed * dt, 0 + move_x_limit)
+        if self.speed <= 0 and self.rect.x >= 0 + move_x_limit_left:
+            self.rect.x = max(self.rect.x + self.speed * dt, 0 + move_x_limit_left)
 
-        elif self.speed > 0 and self.rect.x <= move_x_limit + SIZE[0] - self.rect.width:
-            self.rect.x = min(self.rect.x + self.speed * dt, move_x_limit + SIZE[0] - self.rect.width) 
+        elif self.speed > 0 and self.rect.x <= move_x_limit_right + SIZE[0] - self.rect.width:
+            self.rect.x = min(self.rect.x + self.speed * dt, move_x_limit_right + SIZE[0] - self.rect.width) 
         
         # check collisions x-axis
         self.check_collisions(blocks, check_x=True)
