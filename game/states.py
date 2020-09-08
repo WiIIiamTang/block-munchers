@@ -647,10 +647,6 @@ class LevelSingle(SinglePlayerGame):
     def update_objects(self, clock):
         self.player.update(clock, self.ground, self.gravity, self.deccel, self.blocks)
         self.camera.update_camera(self.player, clock)
-        
-        if pygame.time.get_ticks() - self.time >= 10 * 1000:
-            self.time = pygame.time.get_ticks()
-            self.camera.increment += 1
 
     def handle_events(self, events):
         if self.player.events(events, self.blocks, self.camera):
@@ -709,9 +705,6 @@ class Index(SinglePlayerGame):
         self.player.update(clock, self.ground, self.gravity, self.deccel, self.blocks)
         self.camera.update_camera(self.player, clock)
         
-        if pygame.time.get_ticks() - self.time >= 10 * 1000:
-            self.time = pygame.time.get_ticks()
-            self.camera.increment += 1
 
     def handle_events(self, events):
         self.player.events(events, self.blocks, self.camera)
@@ -725,12 +718,12 @@ class MultiPlayerMenu(State):
     '''
     Represents the menu where you start muliplayer games.
     '''
-    def __init__(self, name='Multiplayer menu', images={}):
+    def __init__(self, name='Multiplayer menu', images={}, client=None, server=None):
         super().__init__(name=name, images=images)
         self.image = self.IMAGES['menu']
         self.title_font = pygame.font.SysFont('Calibri', 64)
         self.button_font = pygame.font.SysFont('Calibri', 32)
-        self.title = self.title_font.render('Multiplayer', True, (218, 242, 245))
+        self.title = self.title_font.render('Multiplayer (1v1)', True, (218, 242, 245))
         self.title_size = self.title.get_size()
 
         self.connect_button = Button(70, 300, 170, 50, 'Connect', 'Calibri', 32,
@@ -748,13 +741,10 @@ class MultiPlayerMenu(State):
             self.back_button
         ]
 
-        self.active_client = False
-        self.active_server = False
-
         self.instructions = 'Enter {ip}:{port} right here. Then click the host/connect buttons.'
-        self.text_box = TextBox(SIZE[0]//2 - 125, 200, 250, 40, self.instructions)
-        self.name_box = TextBox(SIZE[0]//2 - 125, 150, 250, 40, 'Type name here.')
-        self.status_box = TextBox(500, 300, 250, 40, 'This will show connected players.')
+        self.text_box = TextBox(SIZE[0]//2 - 35, 200, 70, 40, self.instructions)
+        self.name_box = TextBox(SIZE[0]//2 - 35, 150, 70, 40, 'Type name here (max 12 chars).')
+        self.status_box = TextBox(500, 300, 250, 40, 'This will show connected players')
         self.quit_box = TextBox(255, 510, 250, 40, '<<< Quit to reset and exit out of any hosted/joined servers!')
 
         self.status_box.enable_write = False
@@ -766,9 +756,16 @@ class MultiPlayerMenu(State):
         self.players_in_room = {}
         self.full = False
         
-        self.server = None
-        self.client = None
-        self.to_send = {}
+        self.server = server
+        self.client = client
+        self.active_client = True if client else False
+        self.active_server = True if server else False
+
+        self.to_send = {'type' : 'menu',
+         'name' : '',
+         'ready' : False,
+         'started' : False
+        }
     
     def host(self):
         job = threading.Thread(target=self.server.handle_connections, daemon=True)
@@ -799,7 +796,8 @@ class MultiPlayerMenu(State):
 
         if self.full:
             self.start_button.draw(screen)
-            self.ready_button.draw(screen)
+            self.ready_button.draw(screen,
+             overwrite_text=f'{"Lock in" if not self.to_send["ready"] else "Ready "+str(sum(self.server_reply["ready"].values()))+"/2"}')
         
         
         
@@ -814,27 +812,31 @@ class MultiPlayerMenu(State):
             try:
                 self.to_send['type'] = 'menu'
                 self.to_send['name'] = self.name_box.text
-                reply = self.client.update(self.to_send)
-                self.players_in_room = reply['players']
-                self.full = reply['full']
+                self.server_reply = self.client.update(self.to_send)
+                self.players_in_room = self.server_reply['players']
+                self.full = self.server_reply['full']
                 #print(self.id)
-                #print('[Game] Client got reply', reply)
+                #print('[Game] Client got reply', self.server_reply)
                 #print(full, self.id not in self.players_in_room.keys())
 
                 if self.full and self.id not in self.players_in_room.keys():
                     self.status_box.text = 'That room is already full!'
                     self.active_client = False
                 else:
-                    self.status_box.text = ' | '.join([name for name in self.players_in_room.values()])
+                    try:
+                        self.status_box.text = ' | '.join([player['name'] for player in self.players_in_room.values()])
+                    except TypeError:
+                        self.status_box.text = ' | '.join([name for name in self.players_in_room.values()])
             except Exception as e:
                 self.status_box.font = pygame.font.SysFont('Courier', 14)
                 self.status_box.text = '[ERROR] Connection to server interrupted'
                 self.full = False
+                print(e)
             
 
     def handle_events(self, events):
         self.text_box.events(events)
-        self.name_box.events(events)
+        self.name_box.events(events, max_chars=12)
         self.status_box.events(events)
         if self.draw_quit_box:
             self.quit_box.events(events)
@@ -883,9 +885,14 @@ class MultiPlayerMenu(State):
         
         if self.full:
             if self.ready_button.check_click(events):
-                print(f'send player {self.id} ready!!')
-            if self.start_button.check_click(events):
-                self.manager.switch(EndlessMultiPlayer(images=self.IMAGES, client=self.client, server=self.server, id=self.id))
+                self.to_send['ready'] = not self.to_send['ready']
+
+            if self.start_button.check_click(events) or sum(self.server_reply['started'].values()) > 0:    
+                if self.server_reply['start']:
+                    self.to_send['started'] = True
+                    self.client.update(self.to_send)
+                    self.manager.switch(EndlessMultiPlayer(images=self.IMAGES,
+                     client=self.client, server=self.server, id=self.id))
         
         if self.back_button.check_area():
             self.draw_quit_box = True
@@ -901,35 +908,153 @@ class EndlessMultiPlayer(State):
     def __init__(self, name='Endless multi player', images={}, client=None, server=None, id=-1):
         super().__init__(name=name, images=images)
         self.image = self.IMAGES['game']
-
-        #tmp
-        self.ground = 400
+        self.ground = 600
         self.gravity = 1
         self.deccel = 2
         self.blocks = pygame.sprite.Group()
-        self.player = Player(x=SIZE[0]//2, y=50, width=32, height=32, speed=0, accel=3, jump_accel=30)
-
-        self.camera = Camera(camera_follow_center_vertical_lock, SIZE[0], SIZE[1], True, self.ground)
+        self.blocks2 = pygame.sprite.Group()
         self.client = client
         self.server = server
-
         self.id = id
-        self.to_send = {'type' : 'ingame', 'players' : { self.id : ''}}
 
+        # Get the initial players setup from server.
+        self.to_send = {
+            'type' : 'ingame',
+            'setup' : True,
+            'init-blocks' : False,
+            'player' : None,
+            'blocks' : set()
+        }
+
+        self.server_reply = self.client.update(self.to_send)
+        print('[Game] Multiplayer - Initial server reply:', self.server_reply)
+        # setting up the two players from the server.
+        # see comments for differences when rendering online multiplayer.
+        kwargs = self.server_reply['players'][self.server_reply['p1']]
+        self.player = Player(**kwargs)
+
+        kwargs = self.server_reply['players'][self.server_reply['p2']]
+        self.player2 = Player(**kwargs)
+
+        self.camera = Camera(simple_camera_follow_center, SIZE[0], SIZE[1], True, self.ground)
+
+        # blocks are generated client-side, and are processed client-side (breaks/collisions)
+        self.level_constructor = LevelConstructor.get_endless()
         
+        self.blocks =  self.level_constructor.get_random_chunk()
+
+        self.alive_blocks = set([(b.rect.x, b.rect.y) for b in self.blocks.sprites()])
+
+        self.ground = self.level_constructor.ground_level
+        self.time = pygame.time.get_ticks()
+
+        self.to_send['setup'] = False
+
+        self.send_initial_blocks()
+
+        self.separator = StandardBlock(800, 0, 3, 1200)
+        self.separator.image = pygame.Surface((3, 600))
+        self.separator.god = True
+
+        self.player.score_font = pygame.font.SysFont('Calibri', 18, bold=True, italic=True)
+        self.player2.score_font = pygame.font.SysFont('Calibri', 18, bold=True, italic=True)
+        
+    def send_initial_blocks(self):
+        self.to_send['init-blocks'] = True
+        self.to_send['blocks'].update(self.alive_blocks)
+        
+        self.server_reply = self.client.update(self.to_send)
+
+        self.to_send['init-blocks'] = False
 
     def draw_screen(self, screen):
         screen.blit(self.image, (0, 0))
 
-        self.player.draw(screen, self.camera)
-    
-    def update_objects(self, clock):
-        self.player.update(clock, self.ground, self.gravity, self.deccel, self.blocks)
-        self.camera.update_camera(self.player, clock)
-
-        print(self.client.update(self.to_send))
+        for b in self.blocks:
+            b.draw(screen, self.camera)
         
+        self.separator.draw(screen, self.camera)
+
+        if self.id == self.server_reply['p1']:
+            self.player.draw(screen, self.camera, name=True, score_location=(SIZE[0]-200, 45))
+            self.player2.draw(screen, self.camera, name=True, score_location=(SIZE[0]-200, 60), draw_health=False)
+        else:
+            self.player.draw(screen, self.camera, name=True, score_location=(SIZE[0]-200, 45), draw_health=False)
+            self.player2.draw(screen, self.camera, name=True, score_location=(SIZE[0]-200, 60))
+        
+
+    def update_alive_blocks(self):
+        for block in self.blocks:
+            if (block.rect.x, block.rect.y) not in self.alive_blocks:
+                block.kill()
+        
+        print('blocks:', len(self.blocks), 'alive:', len(self.alive_blocks))
+                
+        self.alive_blocks = {(b.rect.x, b.rect.y) for b in self.blocks}
+        
+
+    def update_objects(self, clock):
+        if pygame.time.get_ticks() - self.time >= 10 * 1000:
+            self.time = pygame.time.get_ticks()
+            self.camera.increment += 1
+        
+        #self.blocks = self.level_constructor.update_block_chunks(self.camera)
+        #self.alive_blocks.update({(b.rect.x, b.rect.y) for b in self.blocks})
+
+        # Update players: ONLY the player that you are controlling.
+        # Note for p2:
+        # add extra kwarg to move p2 over 800 units to the right of p1.
+        # p2 will spawn in their zone too, so there is no need to modify drawing.
+        #
+        # Then, send our update packet every frame and update the other player with the server reply.
+        if self.id == self.server_reply['p1']:
+            self.player.update(clock, self.ground, self.gravity, self.deccel, self.blocks)
+            
+            self.update_alive_blocks()
+
+            self.to_send['player'] = {'x': self.player.rect.x, 'y': self.player.rect.y}
+            self.to_send['blocks'] = self.alive_blocks
+
+            self.server_reply = self.client.update(self.to_send)
+
+            self.player2.rect.x = self.server_reply['players'][self.server_reply['p2']]['x']
+            self.player2.rect.y = self.server_reply['players'][self.server_reply['p2']]['y']
+
+            self.alive_blocks = self.server_reply['blocks']
+            #print(len(self.alive_blocks2))
+            self.camera.update_camera(self.player, clock)
+            #print(self.player.rect.x, self.player.rect.y)
+            
+        else:
+            self.player2.update(clock, self.ground, self.gravity, self.deccel, self.blocks, move_x_limit=800)
+            
+            self.update_alive_blocks()
+
+            self.to_send['player'] = {'x': self.player2.rect.x, 'y': self.player2.rect.y}
+            self.to_send['blocks'] = self.alive_blocks
+
+            self.server_reply = self.client.update(self.to_send)
+
+            self.player.rect.x = self.server_reply['players'][self.server_reply['p1']]['x']
+            self.player.rect.y = self.server_reply['players'][self.server_reply['p1']]['y']
+
+            self.alive_blocks = self.server_reply['blocks']
+            #print(len(self.alive_blocks))
+            self.camera.update_camera(self.player2, clock)
+
+            
+
+
+        self.separator.rect.y += 10 if self.separator.rect.y < -self.camera.rect.y else 0 
+
+        
+
+              
         
 
     def handle_events(self, events):
-        self.player.events(events, self.blocks, self.camera)
+        # events handled only for the player you are controlling.
+        if self.id == self.server_reply['p1']:
+            self.player.events(events, self.blocks, self.camera)
+        else:
+            self.player2.events(events, self.blocks, self.camera)

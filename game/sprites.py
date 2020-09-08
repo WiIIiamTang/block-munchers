@@ -35,6 +35,7 @@ class Player(pygame.sprite.Sprite):
 
         self.score = 0
         self.score_font = pygame.font.SysFont('Calibri', 24, bold=True, italic=True)
+        self.name_font = pygame.font.SysFont('Courier', 16, bold=True)
 
         self.win = False
 
@@ -50,7 +51,7 @@ class Player(pygame.sprite.Sprite):
 
         print(f'[Game] Player instance created at {x}, {y}')
     
-    def draw(self, screen, camera, offset=(0, 0)):
+    def draw(self, screen, camera, offset=(0, 0), name=False, score_location=(SIZE[0]-160, 30), draw_health=True):
         new_rect = camera.apply_offset(self)
         new_rect.x += offset[0]
         new_rect.y += offset[1]
@@ -62,10 +63,13 @@ class Player(pygame.sprite.Sprite):
         else:
             screen.blit(self.front, new_rect)
         
-        self.health_bar.draw(screen, self)
+        if draw_health:
+            self.health_bar.draw(screen, self)
 
-        screen.blit(self.score_font.render(f'Score:{self.score}', 1, (255, 23, 23)), (SIZE[0]-160, 30))
+        screen.blit(self.score_font.render(f'{self.name}-Score:{self.score}', 1, (255, 23, 23)), score_location)
 
+        if name:
+            screen.blit(self.name_font.render(self.name, 1, (255, 0, 0)), (new_rect.x, new_rect.y - 20))
         # Draw extension hitboxes
         #for value in self.extensions.values():
             #value.draw(screen, camera)

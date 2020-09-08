@@ -4,6 +4,7 @@ import sys
 import pickle
 import threading
 import time
+from game.sprites import *
 
 class Client:
     '''
@@ -13,7 +14,7 @@ class Client:
         self.ip = ip
         self.port = port
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.BUFFER_SIZE = 1024 * 6
+        self.BUFFER_SIZE = 1024 * 14
 
         self.address = (self.ip, self.port)
     
@@ -66,11 +67,22 @@ class Server:
         self.ip = ip
         self.port = port
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.server_data = {'full' : False, 'players' : {}}
         self.running = True
         self.id_count = int(round(time.time()))
 
-        self.BUFFER_SIZE = 1024 * 6
+        self.BUFFER_SIZE = 1024 * 14
+
+        self.player_names = {}
+        self.server_data = {
+            'full' : False,
+            'players' : {},
+            'blocks' : set(),
+            'ready' : {},
+            'start' : False,
+            'started' : {},
+            'p1' : 0,
+            'p2' : 0
+        }
 
         try:
             self.s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -126,12 +138,14 @@ class Server:
         
         ############################
         # handle updates from client.
+        # client sends different dicts depending on the state. check type first.
         while self.running:
             try:
                 received = pickle.loads(s.recv(self.BUFFER_SIZE))
             
                 if not received:
                     self.server_data['players'].pop(pid)
+                    print('Did not receive data from client')
                     break
 
                 # Menu updates.
@@ -141,17 +155,68 @@ class Server:
                         self.server_data['full'] = True
                     else:
                         self.server_data['players'][pid] = received['name']
-                        self.server_data['full'] = False
+                        self.server_data['full'] = False  
+                        self.player_names[pid] = received['name']
+
+                    self.server_data['ready'][pid] = received['ready']
+
+                    self.server_data['start'] = sum([status for status in self.server_data['ready'].values()]) == 2
+                    
+                    self.server_data['started'][pid] = received['started']
+
+
                 # Ingame updates
+                # note there are only two players in the game.
                 elif received['type'] == 'ingame':
-                    self.server_data['ingame'] = True
+                    if received['setup']:
+                        print('[Server] Setting up for', pid)
+                        alternate = True
+                        for key, value in self.server_data['players'].items():
+                            if alternate:
+                                self.server_data['players'][key] = {
+                                    'x' : 64,
+                                    'y' : 0,
+                                    'width' : 32,
+                                    'height' : 32,
+                                    'speed' : 0,
+                                    'accel' : 3,
+                                    'jump_accel' : 15,
+                                    'name' : self.player_names[key]
+                                }
+                                self.server_data['p1'] = key
+                                alternate = not alternate
+                            else:
+                                self.server_data['players'][key] = {
+                                    'x' : SIZE[0]-64,
+                                    'y' : 0,
+                                    'width' : 32,
+                                    'height' : 32,
+                                    'speed' : 0,
+                                    'accel' : 3,
+                                    'jump_accel' : 15,
+                                    'name' : self.player_names[key]
+                                }
+                                self.server_data['p2'] = key
+                    
+                    elif received['init-blocks']:
+                        self.server_data['blocks'].update(received['blocks'])
+                        #print('[Server] blocks', self.server_data['blocks'])
+                        
+                    else:
+                        self.server_data['players'][pid]['x'] = received['player']['x']
+                        self.server_data['players'][pid]['y'] = received['player']['y']
+
+                        self.server_data['blocks'].intersection_update(received['blocks'])
+
                 
                 
                 # Send server data at the end regardless of type of update.
                 s.sendall(pickle.dumps(self.server_data))
             
-            except:
+            except Exception as e:
                 self.server_data['players'].pop(pid)
+                print('Interrupted, breaking', pid)
+                print(e)
                 break
         
         print(f'[Server] (Thread for {pid}) Closing connection')

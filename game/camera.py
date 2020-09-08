@@ -46,9 +46,9 @@ class Camera():
     '''
     Represents the camera that follows the player
     '''
-    def __init__(self, mode, width, height, up, ground_level):
+    def __init__(self, mode, width, height, up, ground_level, x=0, y=0):
         self.mode = mode
-        self.rect = pygame.Rect(0, 0, width, height)
+        self.rect = pygame.Rect(x, y, width, height)
         self.y_offset = 0
         self.increment = 1
         self.up = up

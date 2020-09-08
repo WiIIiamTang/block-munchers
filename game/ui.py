@@ -18,7 +18,7 @@ class TextBox:
         self.color = (255, 255, 255)
         self.alt_color = (129, 230, 179)
         self.active = False
-        self.font = pygame.font.SysFont('Courier', 16)
+        self.font = pygame.font.SysFont('Courier', 18)
         self.rendered_text = self.font.render(initial_text, True, (0, 0, 0))
         self.ready = False
         self.text = initial_text
@@ -35,7 +35,7 @@ class TextBox:
         if self.rect.width - self.width_tracker != 0:
             self.rect.x -= (self.rect.width - self.width_tracker) / 2
     
-    def events(self, events):
+    def events(self, events, max_chars=None):
         if self.enable_write:
             for event in events:
                 if event.type == pygame.MOUSEBUTTONDOWN:
@@ -59,7 +59,11 @@ class TextBox:
                         if self.rect.width - self.initial_width != 0:
                             self.rect.x += (self.rect.width - self.width_tracker) / 2
                     else:
-                        self.text += event.unicode
+                        if max_chars:
+                            if len(self.text) + 1 <= max_chars:
+                                self.text += event.unicode
+                        else:
+                            self.text += event.unicode
 
         self.rendered_text = self.font.render(self.text, True, (0, 0, 0))
 

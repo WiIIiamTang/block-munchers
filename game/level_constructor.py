@@ -29,19 +29,24 @@ class LevelConstructor:
         self.chunk_size = 800
         self.start_y_offset = 200
     
-    def get_random_chunk(self):
+    def get_random_chunk(self, x_offset=0):
         '''
         Used with endless mode.
         Generate a random chunk of blocks, and add it to the Group.
-        One chunk = [800x800] space, filled with 100x100 blocks.
+        eg. One chunk = [800x800] space, filled with 100x100 blocks.
         '''
+        self.x_offset = x_offset
+
         for i in range((self.chunk_size//100)):
             for j in range((self.chunk_size//100) - 1, -1, -1):
-                self.blocks.add(StandardBlock(i*100, self.start_y_offset + j*100 + self.chunk_y_pos, 100, 100))
-        self.blocks.add(InvisBlock(-100, self.start_y_offset + self.chunk_y_pos, 100, 100))
+                b = StandardBlock(i*100 + self.x_offset, self.start_y_offset + j*100 + self.chunk_y_pos, 100, 100)
+                self.blocks.add(b)
+                #print(b.rect.x, b.rect.y)
+        self.blocks.add(InvisBlock(-100 + self.x_offset, self.start_y_offset + self.chunk_y_pos, 100, 100))
 
         self.chunk_y_pos += self.chunk_size # go to next chunk position.
-
+        #print('returning chunk with offset', x_offset)
+        #print(self.blocks.sprites()[0].rect.x)
         return self.blocks
 
     def update_block_chunks(self, camera):
@@ -53,6 +58,7 @@ class LevelConstructor:
         for block in self.blocks:
             if block.check_position(camera):
                 if block.type == 99:
+                    print('[Game] Generating new chunk at', self.chunk_y_pos)
                     self.get_random_chunk()
                 
                 block.kill()
