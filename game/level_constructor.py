@@ -21,7 +21,7 @@ class LevelConstructor:
             '7' : 2000,
             '8' : 4000,
             '9' : 4900,
-            '10' : 2000,
+            '10' : 4000,
             '9999' : 2100
         }
         self.levels = LEVELS
@@ -81,13 +81,13 @@ class LevelConstructor:
             return 3
         elif roll <= 75:
             return 2
-        elif roll <= 85:
+        elif roll <= 88:
             return 4
         elif roll <= 90:
             return 10
-        elif roll <= 95:
-            return 9
         elif roll <= 97:
+            return 9
+        elif roll <= 98:
             return 5
         elif roll <= 99:
             return 6

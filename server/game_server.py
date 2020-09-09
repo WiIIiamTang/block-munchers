@@ -190,7 +190,7 @@ class Server:
                             if alternate:
                                 self.server_data['players-race'][key] = {
                                     'x' : 64,
-                                    'y' : 1950,
+                                    'y' : 50,
                                     'width' : 32,
                                     'height' : 32,
                                     'speed' : 0,
@@ -202,8 +202,8 @@ class Server:
                                 alternate = not alternate
                             else:
                                 self.server_data['players-race'][key] = {
-                                    'x' : 64,
-                                    'y' : 1950,
+                                    'x' : 1100,
+                                    'y' : 50,
                                     'width' : 32,
                                     'height' : 32,
                                     'speed' : 0,

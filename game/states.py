@@ -595,9 +595,9 @@ class EndlessSingle(SinglePlayerGame):
 
         self.blocks = self.level_constructor.update_block_chunks(self.camera)
         
-        if pygame.time.get_ticks() - self.time >= 10 * 1000:
+        if pygame.time.get_ticks() - self.time >= 15 * 1000: # Every so seconds
             self.time = pygame.time.get_ticks()
-            self.camera.increment += 1
+            self.camera.increment += 0.75 # adjust camera up speed
         
         
 
@@ -684,6 +684,21 @@ class Index(SinglePlayerGame):
         self.level_constructor = LevelConstructor.get_level(self.level)
         self.blocks = self.level_constructor.blocks
         self.ground = self.level_constructor.ground_level
+        self.font = pygame.font.SysFont('Calibri', 28, bold=True)
+
+        self.index_blocks = [
+            [StandardBlock(100, 200, 100, 100), self.font.render('Normal Block', True, (51, 204, 204))],
+            [WinBlock(600, 400, 100, 100), self.font.render('Win Block', True, (51, 204, 204))],
+            [ToughBlock(100, 600, 100, 100), self.font.render('Tough Block', True, (51, 204, 204))],
+            [EnergyBlock(600, 800, 100, 100), self.font.render('Restores health!', True, (51, 204, 204))],
+            [ThornBlock(100, 1000, 100, 100), self.font.render('Thorny-does more damage', True, (51, 204, 204))],
+            [SlowBlock(600, 1200, 100, 100), self.font.render('Slow block', True, (51, 204, 204))],
+            [FearBlock(100, 1400, 100, 100), self.font.render('Scary-increases jump', True, (51, 204, 204))],
+            [SuperBlock(600, 1600, 100, 100), self.font.render('SuperMan-more range,speed,hp', True, (51, 204, 204))],
+            [MushroomBlock(100, 1800, 100, 100), self.font.render('Makes you big', True, (51, 204, 204))],
+            [SteelBlock(600, 2000, 100, 100), self.font.render('Hard to break!', True, (51, 204, 204))],
+            [RubyBlock(100, 2000, 100, 100), self.font.render('Max hp+ and restores hp', True, (51, 204, 204))]
+        ]
 
         c = get_config()
         if c['experimental_camera']:
@@ -702,6 +717,12 @@ class Index(SinglePlayerGame):
 
         for block in self.blocks:
             block.draw(screen, self.camera)
+        
+        for l in self.index_blocks:
+            block = l[0]
+            text = l[1]
+            block.draw(screen, self.camera)
+            block.draw_text(screen, self.camera, text)
 
         self.player.draw(screen, self.camera)
     
@@ -976,8 +997,8 @@ class RaceMultiPlayer(State):
 
         self.to_send['setup'] = False
 
-        print('[Game] Sent setup request', self.to_send, 'on', self.id)
-        pygame.time.wait(1000)
+        print('[Game] Sent multiplayer_race setup request', self.to_send, 'on', self.id)
+        pygame.time.wait(1000) # sleep 1 second to let server settle
         self.send_initial_blocks()
 
         self.player.score_font = pygame.font.SysFont('Calibri', 18, bold=True, italic=True)
@@ -1010,7 +1031,7 @@ class RaceMultiPlayer(State):
             b.draw(screen, self.camera)
 
         if self.id == self.server_reply['p1']:
-            self.player.draw(screen, self.camera, name=True, score_location=(SIZE[0]-200, 45), draw_score=False)
+            self.player.draw(screen, self.camera, name=True, score_location=(SIZE[0]-200, 45), draw_score=False, draw_health=False)
             self.player2.draw(screen, self.camera, name=True, score_location=(SIZE[0]-200, 60), draw_health=False, draw_score=False)
             if self.player.win:
                 screen.blit(self.end_font.render('You win', 1, (0, 255,0)), (300, 300))
@@ -1024,7 +1045,7 @@ class RaceMultiPlayer(State):
                 self.manager.switch(MultiPlayerMenu(images=self.IMAGES, client=self.client, server=self.server, id=self.id))
         else:
             self.player.draw(screen, self.camera, name=True, score_location=(SIZE[0]-200, 45), draw_health=False, draw_score=False)
-            self.player2.draw(screen, self.camera, name=True, score_location=(SIZE[0]-200, 60), draw_score=False)
+            self.player2.draw(screen, self.camera, name=True, score_location=(SIZE[0]-200, 60), draw_score=False, draw_health=False)
             if self.player.win:
                 screen.blit(self.end_font.render('You lose', 1, (255, 0,0)), (300, 300))
                 pygame.display.update()
@@ -1054,7 +1075,7 @@ class RaceMultiPlayer(State):
         # Update players: ONLY the player that you are controlling.
         # Then, send our update packet every frame and update the other player with the server reply.
         if self.id == self.server_reply['p1']:
-            self.player.update(clock, self.ground, self.gravity, self.deccel, self.blocks, move_x_limit_right=200)
+            self.player.update(clock, self.ground, self.gravity, self.deccel, self.blocks, move_x_limit_right=400)
             
             self.update_alive_blocks()
 
@@ -1074,7 +1095,7 @@ class RaceMultiPlayer(State):
             
             
         else:
-            self.player2.update(clock, self.ground, self.gravity, self.deccel, self.blocks, move_x_limit_right=200)
+            self.player2.update(clock, self.ground, self.gravity, self.deccel, self.blocks, move_x_limit_right=400)
             
             self.update_alive_blocks()
 

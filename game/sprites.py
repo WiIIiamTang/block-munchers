@@ -231,13 +231,12 @@ class Block(pygame.sprite.Sprite):
     '''
     Represents a block in the game.
     '''
-    def __init__(self, rendered_text=''):
+    def __init__(self):
         super().__init__()
         self.IMAGES = BLOCK_IMAGES
         self.health = 1
         self.type = -111
         self.god = False
-        self.text = rendered_text
 
     @classmethod
     def construct_block_from_type(cls, b, x, y, width, height):
@@ -268,9 +267,9 @@ class Block(pygame.sprite.Sprite):
         else:
             return None
     
-    def draw_text(self, screen, camera):
+    def draw_text(self, screen, camera, rendered_text):
         r = camera.apply_offset(self)
-        screen.blit(self.text, (r.x, r.y - 20))
+        screen.blit(rendered_text, (r.x, r.y - 20))
 
     def draw(self, screen, camera):
         pass
