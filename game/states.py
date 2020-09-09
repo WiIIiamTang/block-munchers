@@ -209,7 +209,7 @@ class Settings(State):
 
         self.fps_button.draw(screen, overwrite_text=f'FPS: {fps_text}')
         self.camera_button.draw(screen, 
-         overwrite_text=f'Experimental cameras (may break game): {"[ON]" if self.experimental_cam else "[OFF]"}')
+         overwrite_text=f'Use smoother cameras on level stages: {"[ON]" if self.experimental_cam else "[OFF]"}')
         self.volume_button.draw(screen,
          overwrite_text=f'Music volume:{self.manager.volume}')
     

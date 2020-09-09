@@ -6,6 +6,7 @@ from game.ui import HealthBar
 config = get_config()
 SIZE = config['size']
 SOUNDS = generate_eat_sound()
+BLOCK_IMAGES = generate_block_images()
 
 class Player(pygame.sprite.Sprite):
     '''
@@ -232,7 +233,7 @@ class Block(pygame.sprite.Sprite):
     '''
     def __init__(self, rendered_text=''):
         super().__init__()
-        self.IMAGES = generate_block_images()
+        self.IMAGES = BLOCK_IMAGES
         self.health = 1
         self.type = -111
         self.god = False
@@ -270,7 +271,7 @@ class Block(pygame.sprite.Sprite):
     def draw_text(self, screen, camera):
         r = camera.apply_offset(self)
         screen.blit(self.text, (r.x, r.y - 20))
-        
+
     def draw(self, screen, camera):
         pass
 

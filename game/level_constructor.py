@@ -41,7 +41,8 @@ class LevelConstructor:
 
         for i in range((self.chunk_size//100)):
             for j in range((self.chunk_size//100) - 1, -1, -1):
-                b = StandardBlock(i*100 + self.x_offset, self.start_y_offset + j*100 + self.chunk_y_pos, 100, 100)
+                #b = StandardBlock(i*100 + self.x_offset, self.start_y_offset + j*100 + self.chunk_y_pos, 100, 100)
+                b = Block.construct_block_from_type(self.random_block(), i*100 + self.x_offset, self.start_y_offset + j*100 + self.chunk_y_pos, 100, 100 )
                 self.blocks.add(b)
                 #print(b.rect.x, b.rect.y)
         self.blocks.add(InvisBlock(-100 + self.x_offset, self.start_y_offset + self.chunk_y_pos, 100, 100))
@@ -60,7 +61,7 @@ class LevelConstructor:
         for block in self.blocks:
             if block.check_position(camera):
                 if block.type == 99:
-                    print('[Game] Generating new chunk at', self.chunk_y_pos)
+                    #print('[Game] Generating new chunk at', self.chunk_y_pos)
                     self.get_random_chunk()
                 
                 block.kill()
@@ -84,7 +85,7 @@ class LevelConstructor:
             return 4
         elif roll <= 90:
             return 10
-        elif roll <= 94:
+        elif roll <= 95:
             return 9
         elif roll <= 97:
             return 5
@@ -92,7 +93,7 @@ class LevelConstructor:
             return 6
         else:
             return 7
-            
+
     @classmethod
     def get_endless(cls):
         '''
