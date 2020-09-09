@@ -225,7 +225,8 @@ class HealthBar(pygame.sprite.Sprite):
     def draw(self, screen, player):
         pygame.draw.rect(screen, (255, 0, 0), self.rect)
         pygame.draw.rect(screen, (0, 255, 0), (self.rect.x, self.rect.y,
-            player.health / (player.max_health/player.health_bar_width), self.rect.height))
+            player.health / (player.max_health/self.max_value), self.rect.height))
+        
 
 
 

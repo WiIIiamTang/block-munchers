@@ -44,7 +44,7 @@ class State():
         return EndlessSingle(images=images)
     
     @staticmethod
-    def make_level_single(images, level):
+    def make_level_single(images, level=0):
         return LevelSingle(images=images, level=level)
 
 class StateManager():
@@ -183,7 +183,7 @@ class Settings(State):
 
         self.fps_button = Button(SIZE[0]//2 - 120, 200, 240, 50, 'FPS', 'Calibri', 32,
          (66, 227, 245), (161, 232, 240))
-        self.camera_button = Button(SIZE[0]//2 - 255, 300, 510, 50, 'Cameras', 'Calibri', 26,
+        self.camera_button = Button(SIZE[0]//2 - 255, 300, 510, 50, 'Cameras', 'Calibri', 24,
         (66, 227, 245), (161, 232, 240))
         self.volume_button = Button(SIZE[0]//2 - 130, 400, 260, 50, 'Volume', 'Calibri', 32,
          (66, 227, 245), (161, 232, 240))
@@ -209,7 +209,7 @@ class Settings(State):
 
         self.fps_button.draw(screen, overwrite_text=f'FPS: {fps_text}')
         self.camera_button.draw(screen, 
-         overwrite_text=f'Use smoother cameras on level stages: {"[ON]" if self.experimental_cam else "[OFF]"}')
+         overwrite_text=f'Experimental cameras (may break game): {"[ON]" if self.experimental_cam else "[OFF]"}')
         self.volume_button.draw(screen,
          overwrite_text=f'Music volume:{self.manager.volume}')
     
@@ -320,13 +320,14 @@ class GameOver(State):
     '''
     Represents the game over menu when the player fails.
     '''
-    def __init__(self, name='Game over menu', images={}, prev_game='', player=None):
+    def __init__(self, name='Game over menu', images={}, prev_game='', player=None, level=0):
         super().__init__(name=name, images=images)
         self.image = self.IMAGES['pause']
         self.title_font = pygame.font.SysFont('Calibri', 64)
         self.button_font = pygame.font.SysFont('Calibri', 32)
         self.title = self.title_font.render('Game Over', True, (241, 0, 50))
         self.title_size = self.title.get_size()
+        self.level = level
 
         self.player = player
         self.prev_game = prev_game
@@ -357,7 +358,8 @@ class GameOver(State):
 
     def handle_events(self, events):
         if self.restart_button.check_click(events):
-            self.manager.switch(self.game_types[self.prev_game](images=self.IMAGES))
+            self.manager.switch(self.game_types[self.prev_game](images=self.IMAGES, level=self.level))
+            
         
         if self.quit_button.check_click(events):
             self.manager.switch(Menu(images=self.IMAGES))
@@ -502,7 +504,7 @@ class LevelSelect(State):
             4 : 'Big Cavern',
             5 : 'Galaxy Brain',
             6 : '6D Chess',
-            7 : 'Marathon',
+            7 : 'I need a diet',
             8 : 'Haha spacebar go brrrrr',
             9 : 'Final Destination'
         }
@@ -635,6 +637,8 @@ class LevelSingle(SinglePlayerGame):
         self.camera = Camera(self.camera_f, SIZE[0], SIZE[1], True, self.ground)
         self.time = pygame.time.get_ticks()
 
+        print('starting level', self.level, 'with ground', self.ground)
+
     def draw_screen(self, screen):
         screen.blit(self.image, (0, 0))
 
@@ -654,7 +658,7 @@ class LevelSingle(SinglePlayerGame):
             SOUNDS['gameover'].play()
             pygame.time.wait(3000)
             self.manager.music.play(-1)
-            self.manager.switch(GameOver(images=self.IMAGES, prev_game='level-single', player=self.player))
+            self.manager.switch(GameOver(images=self.IMAGES, prev_game='level-single', player=self.player, level=self.level))
 
         for event in events:
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:

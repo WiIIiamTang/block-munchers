@@ -1,4 +1,5 @@
 import pygame
+import random
 from game.levels import LEVELS
 from game.sprites import *
 
@@ -12,14 +13,14 @@ class LevelConstructor:
             'endless' : 100000000, # pseudo-infinite
             '0' : 600,
             '1' : 600,
-            '2' : 600,
-            '3' : 600,
-            '4' : 1000,
-            '5' : 1000,
-            '6' : 1000,
-            '7' : 1000,
-            '8' : 1000,
-            '9' : 1000,
+            '2' : 800,
+            '3' : 800,
+            '4' : 3200,
+            '5' : 2000,
+            '6' : 2000,
+            '7' : 2000,
+            '8' : 4000,
+            '9' : 4900,
             '10' : 2000,
             '9999' : 2100
         }
@@ -66,6 +67,32 @@ class LevelConstructor:
         
         return self.blocks
 
+    def random_block(self):
+        '''
+        Returns an integer representing the type of block.
+        Win blocks, mushroom and invisible blocks are excluded.
+        '''
+        roll = random.randint(1, 100)
+
+        if roll <= 50:
+            return 0
+        elif roll <= 65:
+            return 3
+        elif roll <= 75:
+            return 2
+        elif roll <= 85:
+            return 4
+        elif roll <= 90:
+            return 10
+        elif roll <= 94:
+            return 9
+        elif roll <= 97:
+            return 5
+        elif roll <= 99:
+            return 6
+        else:
+            return 7
+            
     @classmethod
     def get_endless(cls):
         '''
@@ -82,12 +109,18 @@ class LevelConstructor:
         '''
         level = cls(l)
         level.ground_level = level.ground_settings[level.mode]
+       
         blocks_data = LEVELS[l]
 
-        level.blocks.add([block for block in [
-            Block.construct_block_from_type(b, i*100, j*100, 100, 100) if rows or b >= 0 else b
-            for j, rows in enumerate(blocks_data) for i, b in enumerate(rows)
-            ] if isinstance(block, Block)
-        ])
+        level.blocks.add(cls.read_level(blocks_data))
 
         return level
+    
+    @staticmethod
+    def read_level(blocks_data):
+        return [
+            block for block in [
+                Block.construct_block_from_type(b, i*100, j*100, 100, 100) if rows or b >= 0 else b
+                for j, rows in enumerate(blocks_data) for i, b in enumerate(rows)
+            ] if isinstance(block, Block)
+        ]

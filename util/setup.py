@@ -39,7 +39,26 @@ def generate_block_images():
     images = {
         'normal' : pygame.image.load(get_path('res/sprites/block_big1.png')),
         'invis' : pygame.image.load(get_path('res/sprites/transparent.png')),
-        'win' : pygame.image.load(get_path('res/sprites/win_block.png'))
+        'win' : pygame.image.load(get_path('res/sprites/win_block.png')),
+        'tough' : [
+            pygame.image.load(get_path('res/sprites/block_tough1.png')),
+            pygame.image.load(get_path('res/sprites/block_tough2.png')),
+            pygame.image.load(get_path('res/sprites/block_tough3.png'))
+        ],
+        'energy' : pygame.image.load(get_path('res/sprites/block_energy.png')),
+        'thorns' : pygame.image.load(get_path('res/sprites/block_thorns.png')),
+        'slow' : [
+            pygame.image.load(get_path('res/sprites/block_slow1.png')),
+            pygame.image.load(get_path('res/sprites/block_slow2.png'))
+        ],
+        'fear' : pygame.image.load(get_path('res/sprites/block_fear.png')),
+        'super' : pygame.image.load(get_path('res/sprites/block_super.png')),
+        'mushroom' : pygame.image.load(get_path('res/sprites/block_mushroom.png')),
+        'steel' : [
+            pygame.image.load(get_path('res/sprites/block_steel1.png')),
+            pygame.image.load(get_path('res/sprites/block_steel2.png'))
+        ],
+        'ruby' : pygame.image.load(get_path('res/sprites/block_ruby.png'))
     }
 
     return images

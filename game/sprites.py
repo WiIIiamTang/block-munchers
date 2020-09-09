@@ -47,7 +47,8 @@ class Player(pygame.sprite.Sprite):
         }
 
         self.health_bar_width = 400
-        self.health_bar = HealthBar(SIZE[0]//2-self.health_bar_width//2, 0, self.health_bar_width, 15, self.max_health)
+        self.health_bar = HealthBar(x=SIZE[0]//2-self.health_bar_width//2,
+         y=0, width=self.health_bar_width, height=15, max_value=self.health_bar_width)
 
         print(f'[Game] Player instance created at {x}, {y}')
     
@@ -135,6 +136,7 @@ class Player(pygame.sprite.Sprite):
 
         
         #### ground_level check
+
         if self.rect.y >= ground_level - self.rect.height:
             self.is_jump = False
             self.speed_y = 0
@@ -142,7 +144,7 @@ class Player(pygame.sprite.Sprite):
         
         #### update player extensions
         self.update_extensions()
-
+        #print(self.rect.y)
     def events(self, events, blocks, camera):
         keys = pygame.key.get_pressed()
 
@@ -170,10 +172,10 @@ class Player(pygame.sprite.Sprite):
                 
     
     def update_extensions(self):
-        self.extensions['up'].rect.x, self.extensions['up'].rect.y = self.rect.x+self.rect.width//2, self.rect.y-10
-        self.extensions['down'].rect.x, self.extensions['down'].rect.y = self.rect.x+self.rect.width//2, self.rect.y+self.rect.height+10
-        self.extensions['left'].rect.x, self.extensions['left'].rect.y = self.rect.x-10, self.rect.y+self.rect.height//2
-        self.extensions['right'].rect.x, self.extensions['right'].rect.y = self.rect.x+self.rect.width+10, self.rect.y+self.rect.height//2
+        self.extensions['up'].rect.x, self.extensions['up'].rect.y = self.rect.x+self.rect.width//2, self.rect.y-self.extensions['up'].rect.height
+        self.extensions['down'].rect.x, self.extensions['down'].rect.y = self.rect.x+self.rect.width//2, self.rect.y+self.rect.height
+        self.extensions['left'].rect.x, self.extensions['left'].rect.y = self.rect.x-self.extensions['left'].rect.width, self.rect.y+self.rect.height//2
+        self.extensions['right'].rect.x, self.extensions['right'].rect.y = self.rect.x+self.rect.width, self.rect.y+self.rect.height//2
     
 
     def check_collisions(self, group, check_x=True):
@@ -204,7 +206,7 @@ class Player(pygame.sprite.Sprite):
             if sprite.hit_interaction(self):
                 SOUNDS['munch'].play()
                 sprite.kill()
-                break
+                
 
 
 class Extension(pygame.sprite.Sprite):
@@ -228,12 +230,13 @@ class Block(pygame.sprite.Sprite):
     '''
     Represents a block in the game.
     '''
-    def __init__(self):
+    def __init__(self, rendered_text=''):
         super().__init__()
         self.IMAGES = generate_block_images()
         self.health = 1
         self.type = -111
         self.god = False
+        self.text = rendered_text
 
     @classmethod
     def construct_block_from_type(cls, b, x, y, width, height):
@@ -243,9 +246,31 @@ class Block(pygame.sprite.Sprite):
             return WinBlock(x, y, width, height)
         elif b == 99:
             return InvisBlock(x, y, width, height)
+        elif b == 2:
+            return ToughBlock(x, y, width, height)
+        elif b == 3:
+            return EnergyBlock(x, y, width, height)
+        elif b == 4:
+            return ThornBlock(x, y, width, height)
+        elif b == 5:
+            return SlowBlock(x, y, width, height)
+        elif b == 6:
+            return FearBlock(x, y, width, height)
+        elif b == 7:
+            return SuperBlock(x, y, width, height)
+        elif b == 8:
+            return MushroomBlock(x, y, width, height)
+        elif b == 9:
+            return SteelBlock(x, y, width, height)
+        elif b == 10:
+            return RubyBlock(x, y, width, height)
         else:
             return None
-
+    
+    def draw_text(self, screen, camera):
+        r = camera.apply_offset(self)
+        screen.blit(self.text, (r.x, r.y - 20))
+        
     def draw(self, screen, camera):
         pass
 
@@ -296,8 +321,8 @@ class InvisBlock(Block):
     def __init__(self, x, y, width, height):
         super().__init__()
         self.rect = pygame.Rect(x, y, width, height)
-        #self.image = self.IMAGES['invis']
-        self.image = pygame.Surface((100, 100))
+        self.image = self.IMAGES['invis']
+        #self.image = pygame.Surface((100, 100))
         self.health = 99999
         self.type = 99
         
@@ -323,11 +348,258 @@ class WinBlock(Block):
     
     def hit_interaction(self, player):
         if not self.god:
-            player.score += 5000
+            player.score += 25000
             player.win = True
             return True
         else:
             return False
+
+class ToughBlock(Block):
+    '''
+    Takes more than one hit to break. The number of hits
+    required can be adjusted by changing the health,
+    but there is only support for 3 in the sprite images so far.
+    '''
+    def __init__(self, x, y, width, height):
+        super().__init__()
+        self.rect = pygame.Rect(x, y, width, height)
+        self.image = self.IMAGES['tough'][0]
+        self.max_health = 3
+        self.health = 3
+        self.type = 2
+
+    def draw(self, screen, camera):
+        screen.blit(self.image, camera.apply_offset(self))
+
+    def hit_interaction(self, player):
+        if not self.god:
+            if self.health == 1:
+                player.score += 1200
+            self.health -= 1
+            player.health -= 10
+            self.image = self.IMAGES['tough'][(self.max_health-self.health) if self.health > 0 else 0]
+            return self.broken()
+        else:
+            return False
+
+class EnergyBlock(Block):
+    '''
+    Restores energy when broken.
+    '''
+    def __init__(self, x, y, width, height):
+        super().__init__()
+        self.rect = pygame.Rect(x, y, width, height)
+        self.image = self.IMAGES['energy']
+        self.max_health = 1
+        self.health = 1
+        self.type = 3
+
+    def draw(self, screen, camera):
+        screen.blit(self.image, camera.apply_offset(self))
+
+    def hit_interaction(self, player):
+        if not self.god:
+            player.score += 200
+            self.health -= 1
+            player.health = min(player.health + 30, player.max_health)
+            return self.broken()
+        else:
+            return False
+
+class ThornBlock(Block):
+    '''
+    Does extra damage to player when hit.
+    '''
+    def __init__(self, x, y, width, height):
+        super().__init__()
+        self.rect = pygame.Rect(x, y, width, height)
+        self.image = self.IMAGES['thorns']
+        self.max_health = 1
+        self.health = 1
+        self.type = 4
+
+    def draw(self, screen, camera):
+        screen.blit(self.image, camera.apply_offset(self))
+
+    def hit_interaction(self, player):
+        if not self.god:
+            player.score += 500
+            self.health -= 1
+            player.health -= 30
+            return self.broken()
+        else:
+            return False
+
+class SlowBlock(Block):
+    '''
+    Reduces the player's max speed for the current session.
+    '''
+    def __init__(self, x, y, width, height):
+        super().__init__()
+        self.rect = pygame.Rect(x, y, width, height)
+        self.image = self.IMAGES['slow'][0]
+        self.max_health = 2
+        self.health = 2
+        self.type = 5
+
+    def draw(self, screen, camera):
+        screen.blit(self.image, camera.apply_offset(self))
+
+    def hit_interaction(self, player):
+        if not self.god:
+            if self.health == 1:
+                player.score += 700
+            self.health -= 1
+            self.image = self.IMAGES['slow'][(self.max_health-self.health) if self.health > 0 else 0]
+            player.health -= 10
+            player.max_speed = max(2, player.max_speed - 2)
+            return self.broken()
+        else:
+            return False
+
+class FearBlock(Block):
+    '''
+    Scares the player and boosts jump for the current session.
+    '''
+    def __init__(self, x, y, width, height):
+        super().__init__()
+        self.rect = pygame.Rect(x, y, width, height)
+        self.image = self.IMAGES['fear']
+        self.max_health = 1
+        self.health = 1
+        self.type = 6
+
+    def draw(self, screen, camera):
+        screen.blit(self.image, camera.apply_offset(self))
+
+    def hit_interaction(self, player):
+        if not self.god:
+            player.score += 500
+            self.health -= 1
+            player.health -= 10
+            player.jump_accel += 6
+            return self.broken()
+        else:
+            return False
+
+class SuperBlock(Block):
+    '''
+    Grants increased speed, health, max health, and increased hit range.
+    May not extend hit range with another super block in the same stage.
+    '''
+    def __init__(self, x, y, width, height):
+        super().__init__()
+        self.rect = pygame.Rect(x, y, width, height)
+        self.image = self.IMAGES['super']
+        self.max_health = 1
+        self.health = 1
+        self.type = 7
+
+    def draw(self, screen, camera):
+        screen.blit(self.image, camera.apply_offset(self))
+
+    def hit_interaction(self, player):
+        if not self.god:
+            player.score += 2000
+            self.health -= 1
+            player.max_health += 100
+            player.health = min(player.health + 50, player.max_health)
+            player.max_speed += 2
+            player.accel += 0.5
+            player.extensions = {
+            'up' : Extension(player.rect.x+player.rect.width//2, player.rect.y-50, height=150),
+            'down' : Extension(player.rect.x+player.rect.width//2, player.rect.y+player.rect.height+50, height=150),
+            'left' : Extension(player.rect.x-50, player.rect.y+player.rect.height//2, width=150),
+            'right' : Extension(player.rect.x+player.rect.width+50, player.rect.y+player.rect.height//2, width=150)
+        }
+            return self.broken()
+        else:
+            return False
+
+class MushroomBlock(Block):
+    '''
+    Makes the player bigger on hit.
+    '''
+    def __init__(self, x, y, width, height):
+        super().__init__()
+        self.rect = pygame.Rect(x, y, width, height)
+        self.image = self.IMAGES['mushroom']
+        self.max_health = 1
+        self.health = 1
+        self.type = 8
+
+    def draw(self, screen, camera):
+        screen.blit(self.image, camera.apply_offset(self))
+
+    def hit_interaction(self, player):
+        if not self.god:
+            player.score += 600
+            self.health -= 1
+            player.front = pygame.transform.scale(player.front, (player.rect.width*2, player.rect.height*2))
+            player.left = pygame.transform.scale(player.left, (player.rect.width*2, player.rect.height*2))
+            player.right = pygame.transform.scale(player.right, (player.rect.width*2, player.rect.height*2))
+            player.rect.width *= 2
+            player.rect.height *= 2
+            
+            player.jump_accel += 5
+            player.max_speed += 2
+            return self.broken()
+        else:
+            return False
+
+class SteelBlock(Block):
+    '''
+    Takes many hits to destroy and does more damage on hit than normal.
+    Not suggested to try to break.
+    '''
+    def __init__(self, x, y, width, height):
+        super().__init__()
+        self.rect = pygame.Rect(x, y, width, height)
+        self.image = self.IMAGES['steel'][0]
+        self.max_health = 8
+        self.health = 8
+        self.type = 9
+
+    def draw(self, screen, camera):
+        screen.blit(self.image, camera.apply_offset(self))
+
+    def hit_interaction(self, player):
+        if not self.god:
+            if self.health == 1:
+                player.score += 2400
+            self.health -= 1
+            player.health -= 20
+            self.image = self.IMAGES['steel'][(self.max_health-self.health)%2]
+            return self.broken()
+        else:
+            return False
+
+class RubyBlock(Block):
+    '''
+    Gives lots of points, increases max health and restores health.
+    '''
+    def __init__(self, x, y, width, height):
+        super().__init__()
+        self.rect = pygame.Rect(x, y, width, height)
+        self.image = self.IMAGES['ruby']
+        self.max_health = 1
+        self.health = 1
+        self.type = 10
+
+    def draw(self, screen, camera):
+        screen.blit(self.image, camera.apply_offset(self))
+
+    def hit_interaction(self, player):
+        if not self.god:
+            player.score += 2750
+            self.health -= 1
+            player.max_health += 100
+            player.health = min(player.health + 150, player.max_health)
+            return self.broken()
+        else:
+            return False
+
+    
     
 
     
