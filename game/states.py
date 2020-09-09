@@ -976,6 +976,8 @@ class RaceMultiPlayer(State):
 
         self.to_send['setup'] = False
 
+        print('[Game] Sent setup request', self.to_send, 'on', self.id)
+        pygame.time.wait(1000)
         self.send_initial_blocks()
 
         self.player.score_font = pygame.font.SysFont('Calibri', 18, bold=True, italic=True)
