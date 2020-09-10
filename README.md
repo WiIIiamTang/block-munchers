@@ -30,7 +30,7 @@ python3 play.py
 - Settings: Change framerate and other settings.
 
 # Multiplayer support
-*Multiplayer is still being worked on and is buggy. May or may not work properly.*
+*Multiplayer is still being worked on.*
 
 In mulitplayer, you can host or connect to a room from the game itself. The server will be hosted at the address specified, `{ip}:{port}` when you enter it in game.
 
@@ -53,12 +53,12 @@ Input your public ip address alongside the port. Make sure your port is forwarde
 
  Here are some additional notes about multiplayer:
 
-- Don't use ports that are already in use (obviously)
+- Don't use ports that are already in use
 - Clicking start (when both players are ready) will start the game for both players, regardless of who is the 'host'
 - Aborting the race mode will exit out of the game for both players; you cannot manually quit in multiplayer endless, however.
 
 ### Multiplayer game modes
- - Race: Race your friend to the golden blocks at the bottom of the map. **Currently broken**
+ - Race: Race your friend to the golden blocks at the bottom of the map. **[Currently broken]**
  - Endless: See who can survive the longest in this endless game mode.
 
 
@@ -77,11 +77,16 @@ __Build options__
 2 - Single exe
 3 - Server only
 ```
-#### Customizing game
-Some elements that are easy to change:
-- Levels are easily modified by editing the ``levels.py`` file. Levels are 2d arrays containing integers; each integer corresponds to a block type (see ``sprites.py``).
 
- - The endless mode functions by generating 800x800 chunks at a time; you can edit the rates in ``level_constructor.py``.
+Or you could manually build using the .spec files from pyinstaller.
+
+- Singleplayer_levels: Done
+- Singleplayer_endless: Done
+- ui + cameras: Done
+- Index: Done
+- Settings: Done
+- Multiplayer_backend: In progress
+- Multiplayer_gameplay: In progress
 
 # Credits
 
