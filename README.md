@@ -39,7 +39,12 @@ Over a local network (**LAN**), **no configuration is necessary**; just enter yo
 ![https://i.imgur.com/BXrb0SS.gif](https://i.imgur.com/BXrb0SS.gif)
 
 ### Online
-To play with someone **not on the same network**, you'll have to input your public ip address alongside the port. Make sure your port is forwarded if you need to. Make sure your firewall isn't blocking it either.
+To play with someone **not on the same network**, the testing server I have is closed for now, so you'll have to use the server.exe and host it somewhere.
+
+Input your public ip address alongside the port. Make sure your port is forwarded if you need to. Make sure your firewall isn't blocking it either.
+
+
+**Lots of routers don't support you connecting to your own public ip address**, so it may not work if you host it on the same network as the game. Unfortunately, this means most people won't be able to play online as they won't be able to host the server on some other network, and the server I have running has my ip address that I'm not keen on publicly displaying.
 
  Here are some additional notes about multiplayer:
 
