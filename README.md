@@ -33,10 +33,13 @@ python3 play.py
 The server will be hosted at the address specified, `{ip}:{port}` when you enter it in game.
 
 ### LAN
-Over a local network (**LAN**), **no configuration is necessary**; just enter your name and a port number (like 5555). Then press host, and connect to your own game. Tell your partner to connect to the same port as well. **You do not need to put an ip address.** Just something like ``:5555`` will work. Example:
+Over a local network (**LAN**), **no configuration is necessary**; just enter your name and a port number (like 5555). Then press host, and connect to your own game. Tell your partner to connect to your local ip address, and the same port as well. However, if you're hosting from in-game, just something like ``:5555`` will work. Example:
 
 
 ![https://i.imgur.com/BXrb0SS.gif](https://i.imgur.com/BXrb0SS.gif)
+
+After which, your partner will need to connect with your local ip address and port.
+
 
 ### Online
 To play with someone **not on the same network**, the testing server I have is closed for now, so you'll have to use the server.exe and host it somewhere.
