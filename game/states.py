@@ -985,7 +985,9 @@ class RaceMultiPlayer(State):
 
         kwargs = self.server_reply['players-race'][self.server_reply['p2']]
         self.player2 = Player(**kwargs)
-
+        
+        self.to_send['player'] = {'x': self.player.rect.x, 'y': self.player.rect.y}
+        
         # blocks are generated client-side, and are processed client-side (breaks/collisions)
         self.level_constructor = LevelConstructor.get_level('10')
         self.blocks = self.level_constructor.blocks
