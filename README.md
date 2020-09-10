@@ -30,15 +30,17 @@ python3 play.py
 - Settings: Change framerate and other settings.
 
 # Multiplayer support
-The server will be hosted at the address specified, `{ip}:{port}` when you enter it in game.
+*Multiplayer is still being worked on and is buggy. May or may not work properly.*
+
+In mulitplayer, you can host or connect to a room from the game itself. The server will be hosted at the address specified, `{ip}:{port}` when you enter it in game.
 
 ### LAN
-Over a local network (**LAN**), **no configuration is necessary**; just enter your name and a port number (like 5555). Then press host, and connect to your own game. Tell your partner to connect to your local ip address, and the same port as well. However, if you're hosting from in-game, just something like ``:5555`` will work. Example:
+Over a local network (**LAN**), **no configuration is necessary**; just enter your name and a port number (like :5555). Then press host, and connect to your own game. Tell your partner to connect to your local ip address, and the same port as well. However, if you're hosting from in-game, just something like ``:5555`` will work. Example:
 
 
 ![https://i.imgur.com/BXrb0SS.gif](https://i.imgur.com/BXrb0SS.gif)
 
-After which, your partner will need to connect with your local ip address and port.
+After which, your partner will just need to connect with your local ip address and port.
 
 
 ### Online
@@ -55,8 +57,13 @@ Input your public ip address alongside the port. Make sure your port is forwarde
 - Clicking start (when both players are ready) will start the game for both players, regardless of who is the 'host'
 - Aborting the race mode will exit out of the game for both players; you cannot manually quit in multiplayer endless, however.
 
+### Multiplayer game modes
+ - Race: Race your friend to the golden blocks at the bottom of the map. **Currently broken**
+ - Endless: See who can survive the longest in this endless game mode.
+
+
 # Development
-Cone the repo and install the requirements if needed.
+This project is still in development. Cone the repo and install the requirements if needed.
 **To build** the release, run ``build.py``.
 
 This uses pyinstaller to package the files. For a windows release, run ``build.py`` on windows, for Linux, run it on a linux machine, etc.
