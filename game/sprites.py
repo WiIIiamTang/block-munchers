@@ -240,32 +240,25 @@ class Block(pygame.sprite.Sprite):
 
     @classmethod
     def construct_block_from_type(cls, b, x, y, width, height):
-        if b == 0:
-            return StandardBlock(x, y, width, height)
-        elif b == 1:
-            return WinBlock(x, y, width, height)
-        elif b == 99:
-            return InvisBlock(x, y, width, height)
-        elif b == 2:
-            return ToughBlock(x, y, width, height)
-        elif b == 3:
-            return EnergyBlock(x, y, width, height)
-        elif b == 4:
-            return ThornBlock(x, y, width, height)
-        elif b == 5:
-            return SlowBlock(x, y, width, height)
-        elif b == 6:
-            return FearBlock(x, y, width, height)
-        elif b == 7:
-            return SuperBlock(x, y, width, height)
-        elif b == 8:
-            return MushroomBlock(x, y, width, height)
-        elif b == 9:
-            return SteelBlock(x, y, width, height)
-        elif b == 10:
-            return RubyBlock(x, y, width, height)
+        types = {
+            0 : StandardBlock,
+            1 : WinBlock,
+            99 : InvisBlock,
+            2 : ToughBlock,
+            3 : EnergyBlock,
+            4: ThornBlock,
+            5: SlowBlock,
+            6: FearBlock,
+            7: SuperBlock,
+            8: MushroomBlock,
+            9: SteelBlock,
+            10: RubyBlock
+        }
+        if b not in types.keys():
+            return None 
         else:
-            return None
+            return types.get(b)(x, y, width, height)
+        
     
     def draw_text(self, screen, camera, rendered_text):
         r = camera.apply_offset(self)

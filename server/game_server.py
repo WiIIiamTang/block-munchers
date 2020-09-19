@@ -4,47 +4,48 @@ import sys
 import pickle
 import threading
 import time
+from multiprocessing.connection import Listener, Client
 
-class Client:
+class GClient:
     '''
     Represents a game client that connects to the server.
     '''
     def __init__(self, ip='', port=6969):
         self.ip = ip
         self.port = port
-        self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.BUFFER_SIZE = 1024 * 14
-
         self.address = (self.ip, self.port)
-    
+        self.s = None
+         
     def connect(self):
         '''
         Connects to the server and returns the id for the client.
         '''
         try:
-            self.s.connect(self.address)
+            self.s = Client(self.address)
 
-            return pickle.loads(self.s.recv(self.BUFFER_SIZE))
+            return self.s.recv()
+
         except Exception as e:
-            self.close()
+            self.s.close()
     
     def send(self, to_send):
         '''
         Sends the object seralized by pickle.
         '''
         try:
-            self.s.send(pickle.dumps(to_send))        
+            self.s.send(to_send)
+
         except Exception as e:
-            self.close()
+            self.s.close()
     
     def receive(self):
         '''
         Receives data sent by the server and returns it.
         '''
         try:
-            return pickle.loads(self.s.recv(self.BUFFER_SIZE))
+            return self.s.recv()
         except Exception as e:
-            self.close()
+            self.s.close()
     
     def update(self, to_send):
         '''
@@ -57,7 +58,7 @@ class Client:
         self.s.close()
 
 
-class Server:
+class GServer:
     '''
     Represents a game server that hosts multiplayer games.
     '''
@@ -65,7 +66,9 @@ class Server:
         # The ip should be left empty to accept all incoming connections.
         self.ip = ip
         self.port = port
-        self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.address = (self.ip, self.port)
+        self.s = Listener(self.address)
+    
         self.running = True
         self.id_count = int(round(time.time()))
 
@@ -87,22 +90,10 @@ class Server:
             'quit' : {},
             'win' : {}
         }
-
-        try:
-            self.s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            self.s.bind((self.ip, self.port))
-        except socket.error as e:
-            print(e)
         
-        # Starting listening on the socket.
-        self.s.listen()
         print('[Server] Started')
     
     def shutdown(self):
-        try:
-            self.s.shutdown(socket.SHUT_RDWR)
-        except Exception as e:
-            pass
         self.s.close()
 
         print('[Server] Closing main socket and shutting down')
@@ -116,7 +107,7 @@ class Server:
         
         while self.running:
             try:
-                connection, address = self.s.accept()
+                connection = self.s.accept()
 
                 if not self.running:
                     self.s.close()
@@ -138,14 +129,14 @@ class Server:
         '''
         ############################
         # assign pid when client connects.
-        s.send(pickle.dumps(pid)) 
+        s.send(pid) 
         
         ############################
         # handle updates from client.
         # client sends different dicts depending on the state. check type first.
         while self.running:
             try:
-                received = pickle.loads(s.recv(self.BUFFER_SIZE))
+                received = s.recv()
             
                 if not received:
                     self.server_data['players'].pop(pid)
@@ -232,7 +223,7 @@ class Server:
                 
                 
                 # Send server data at the end regardless of type of update.
-                s.sendall(pickle.dumps(self.server_data))
+                s.send(self.server_data)
             
             except Exception as e:
                 self.server_data['players'].pop(pid)
