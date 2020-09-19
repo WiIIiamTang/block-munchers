@@ -954,7 +954,7 @@ class RaceMultiPlayer(State):
     '''
     Represents the race multiplayer in-game state.
     '''
-    def __init__(self, name='Endless multi player', images={}, client=None, server=None, id=-1):
+    def __init__(self, name='Race multi player', images={}, client=None, server=None, id=-1):
         super().__init__(name=name, images=images)
         self.image = self.IMAGES['game']
         #self.ground = 600
@@ -1039,12 +1039,12 @@ class RaceMultiPlayer(State):
             if self.player.win:
                 screen.blit(self.end_font.render('You win', 1, (0, 255,0)), (300, 300))
                 pygame.display.update()
-                pygame.time.wait(2000)
+                pygame.time.wait(3000)
                 self.manager.switch(MultiPlayerMenu(images=self.IMAGES, client=self.client, server=self.server, id=self.id))
             if self.player2.win:
-                screen.blit(self.end_font.render('You lose', 1, (255, 0, 0)) (300, 300))
+                screen.blit(self.end_font.render('You lose', 1, (255, 0, 0)), (300, 300))
                 pygame.display.update()
-                pygame.time.wait(2000)
+                pygame.time.wait(3000)
                 self.manager.switch(MultiPlayerMenu(images=self.IMAGES, client=self.client, server=self.server, id=self.id))
         else:
             self.player.draw(screen, self.camera, name=True, score_location=(SIZE[0]-200, 45), draw_health=False, draw_score=False)
@@ -1052,12 +1052,12 @@ class RaceMultiPlayer(State):
             if self.player.win:
                 screen.blit(self.end_font.render('You lose', 1, (255, 0,0)), (300, 300))
                 pygame.display.update()
-                pygame.time.wait(2000)
+                pygame.time.wait(3000)
                 self.manager.switch(MultiPlayerMenu(images=self.IMAGES, client=self.client, server=self.server, id=self.id))
             if self.player2.win:
                 screen.blit(self.end_font.render('You win', 1, (0, 255, 0)), (300, 300))
                 pygame.display.update()
-                pygame.time.wait(2000)
+                pygame.time.wait(3000)
                 self.manager.switch(MultiPlayerMenu(images=self.IMAGES, client=self.client, server=self.server, id=self.id))
         
         self.quit_button.draw(screen)
