@@ -8,7 +8,7 @@ from game.camera import *
 from game.level_constructor import *
 from server.game_server import *
 from util.setup import get_path, get_config, generate_menu_sounds, generate_level_thumbnails
-
+from multiprocessing.connection import Listener, Client
 
 
 c = get_config()
@@ -808,8 +808,8 @@ class MultiPlayerMenu(State):
         try:
             self.id = int(self.client.connect())
             self.active_client = True
-        except:
-            pass
+        except Exception as e:
+            print(e)
 
     def draw_screen(self, screen):
         screen.blit(self.image, (0, 0))
@@ -893,12 +893,13 @@ class MultiPlayerMenu(State):
                     data = self.text_box.text.strip().split(':')
                     try:
                         data[0] = '127.0.0.1' if not data[0] else data[0]
-                        self.client = Client(ip=data[0], port=int(data[1]))
+                        self.client = GClient(ip=data[0], port=int(data[1]))
                         self.connect_client()
 
                         self.name_box.enable_write = False
                         print('[Game] Connected to', data[0])
                     except Exception as e:
+                        #print(e)
                         self.text_box.text = f'{type(e)}'
 
                 else:
@@ -909,7 +910,7 @@ class MultiPlayerMenu(State):
                 if self.text_box.text:
                     data = self.text_box.text.strip().split(':')
                     try:
-                        self.server = Server(ip=data[0], port=int(data[1]))
+                        self.server = GServer(ip=data[0], port=int(data[1]))
                         self.host()
 
                         self.active_server = True
@@ -953,7 +954,7 @@ class RaceMultiPlayer(State):
     '''
     Represents the race multiplayer in-game state.
     '''
-    def __init__(self, name='Endless multi player', images={}, client=None, server=None, id=-1):
+    def __init__(self, name='Race multi player', images={}, client=None, server=None, id=-1):
         super().__init__(name=name, images=images)
         self.image = self.IMAGES['game']
         #self.ground = 600
@@ -1038,12 +1039,12 @@ class RaceMultiPlayer(State):
             if self.player.win:
                 screen.blit(self.end_font.render('You win', 1, (0, 255,0)), (300, 300))
                 pygame.display.update()
-                pygame.time.wait(2000)
+                pygame.time.wait(3000)
                 self.manager.switch(MultiPlayerMenu(images=self.IMAGES, client=self.client, server=self.server, id=self.id))
             if self.player2.win:
-                screen.blit(self.end_font.render('You lose', 1, (255, 0, 0)) (300, 300))
+                screen.blit(self.end_font.render('You lose', 1, (255, 0, 0)), (300, 300))
                 pygame.display.update()
-                pygame.time.wait(2000)
+                pygame.time.wait(3000)
                 self.manager.switch(MultiPlayerMenu(images=self.IMAGES, client=self.client, server=self.server, id=self.id))
         else:
             self.player.draw(screen, self.camera, name=True, score_location=(SIZE[0]-200, 45), draw_health=False, draw_score=False)
@@ -1051,12 +1052,12 @@ class RaceMultiPlayer(State):
             if self.player.win:
                 screen.blit(self.end_font.render('You lose', 1, (255, 0,0)), (300, 300))
                 pygame.display.update()
-                pygame.time.wait(2000)
+                pygame.time.wait(3000)
                 self.manager.switch(MultiPlayerMenu(images=self.IMAGES, client=self.client, server=self.server, id=self.id))
             if self.player2.win:
                 screen.blit(self.end_font.render('You win', 1, (0, 255, 0)), (300, 300))
                 pygame.display.update()
-                pygame.time.wait(2000)
+                pygame.time.wait(3000)
                 self.manager.switch(MultiPlayerMenu(images=self.IMAGES, client=self.client, server=self.server, id=self.id))
         
         self.quit_button.draw(screen)
@@ -1189,18 +1190,26 @@ class EndlessMultiPlayer(State):
         opponent_box = self.height_font.render(f'{self.opponent_name}:{y}', 1, (0,0,0))
         opponent_box_size = opponent_box.get_size()
 
-        pygame.draw.rect(screen, (0, 255, 150), (0, y, opponent_box_size[0], 20))
-        screen.blit(opponent_box, (0, y))
+        #y_opponent_box = min(SIZE[1] - opponent_box_size[1], y)
+        #print(y_opponent_box)
+        pygame.draw.rect(screen, (0, 255, 150), (0, y+self.camera.rect.y, opponent_box_size[0], 20))
+        screen.blit(opponent_box, (0, y+self.camera.rect.y))
 
         if self.opponent_lost:
             screen.blit(self.end_font.render('You win', 1, (0, 255,0)), (300, 300))
             pygame.display.update()
             pygame.time.wait(2000)
+            self.lost = False
+            self.to_send['lose'] = self.lost
+            self.server_reply = self.client.update(self.to_send)
             self.manager.switch(MultiPlayerMenu(images=self.IMAGES, client=self.client, server=self.server, id=self.id))
         elif self.lost:
             screen.blit(self.end_font.render('You lose', 1, (255, 0, 0)), (300, 300))
             pygame.display.update()
             pygame.time.wait(2000)
+            self.lost = False
+            self.to_send['lose'] = self.lost
+            self.server_reply = self.client.update(self.to_send)
             self.manager.switch(MultiPlayerMenu(images=self.IMAGES, client=self.client, server=self.server, id=self.id))
 
     def update_objects(self, clock):

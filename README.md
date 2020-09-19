@@ -30,23 +30,23 @@ python3 play.py
 - Settings: Change framerate and other settings.
 
 # Multiplayer support
-*Multiplayer is still being worked on.*
 
 In mulitplayer, you can host or connect to a room from the game itself. The server will be hosted at the address specified, `{ip}:{port}` when you enter it in game.
 
 ### LAN
-Over a local network (**LAN**), **no configuration is necessary**; just enter your name and a port number (like :5555). Then press host, and connect to your own game. Tell your partner to connect to your local ip address, and the same port as well. However, if you're hosting from in-game, just something like ``:5555`` will work. Example:
+Over a local network (**LAN**), **no configuration is necessary**; just enter your name and a port number (like :5555). Then press host, and connect to your own game. Tell your partner to connect to your local ip address, and the same port as well. Example:
 
 
 ![https://i.imgur.com/BXrb0SS.gif](https://i.imgur.com/BXrb0SS.gif)
 
-After which, your partner will just need to connect with your local ip address and port.
+After which, your partner will just need to connect with your local ip address and port (eg. 192.168.2.4:5555).
+
 
 
 ### Online
-To play with someone **not on the same network**, the host player can follow the same process as above, if the server is running on the same network as the game. Host with an empty ip address, and then connect with ``127.0.0.1:{port}``. The other player must connect with the public ip address. Make sure the port is forwarded if needed.
+To play with someone **not on the same network**, the host player can follow the same process as above if the server is running on the same network as the game. Host with an empty ip address, and then connect with ``127.0.0.1:{port}``. **The other player must connect with the public ip address of your server.** Make sure the port is forwarded if needed.
 
-Otherwise, if you're hosting the server somewhere else, both players will have to input the public ip address of the server alongside the port. Make sure your port is forwarded if you need to, and your firewall isn't blocking it either.
+Otherwise, if you're hosting the server somewhere else, both players will have to input the public ip address of the server alongside the port. Again, make sure your port is forwarded if you need to, and your firewall isn't blocking it either.
 
  Here are some additional notes about multiplayer:
 
@@ -55,17 +55,17 @@ Otherwise, if you're hosting the server somewhere else, both players will have t
 - Aborting the race mode will exit out of the game for both players; you cannot manually quit in multiplayer endless, however.
 
 ### Multiplayer game modes
- - Race: Race your friend to the golden blocks at the bottom of the map. **[Currently broken]**
+ - Race: Race your friend to the golden blocks at the bottom of the map.
  - Endless: See who can survive the longest in this endless game mode.
 
 
-# Development
-This project is still in development. Cone the repo and install the requirements if needed.
-**To build** the release, run ``build.py``.
+# Building from source
 
-This uses pyinstaller to package the files. For a windows release, run ``build.py`` on windows, for Linux, run it on a linux machine, etc.
+To build the release, run ``build.py``.
 
-Resource files (ie. images, sounds) need to be added as data to pyinstaller. ``build.py`` already takes care of this, but if you were to add more folders you would need to add them in.
+This uses pyinstaller to package the files. For a Windows release, run ``build.py`` on windows, for Linux, run it on a linux machine, etc.
+
+Resource files (ie. images, sounds) need to be added as data to pyinstaller. ``build.py`` already takes care of this, but if you were to add more folders you would need to add them in with the ``--add-data`` option.
 
 __Build options__
 ```
@@ -82,7 +82,7 @@ Or you could manually build using the .spec files from pyinstaller.
 - ui + cameras: Done
 - Index: Done
 - Settings: Done
-- Multiplayer_backend: In progress
+- Multiplayer_backend: Done
 - Multiplayer_gameplay: In progress
 
 # Credits
@@ -90,3 +90,5 @@ Or you could manually build using the .spec files from pyinstaller.
 See ``attributions.txt`` (all free/royalty-free sources) and the license file for music ``License.pdf``.
 
 Made by me
+
+Block Textures by Arya Shomali
