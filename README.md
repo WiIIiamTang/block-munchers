@@ -26,7 +26,7 @@ python3 play.py
    - Multiplayer
       - Host or Connect to a multiplayer game. There are two game modes to choose from. Both players must lock in before starting the match.
 - Index: View information on the types of blocks in the game.
-- Help: Get basic information on how to play.
+- Help: Get basic information on what the controls are.
 - Settings: Change framerate and other settings.
 
 # Multiplayer support
@@ -76,14 +76,6 @@ __Build options__
 ```
 
 Or you could manually build using the .spec files from pyinstaller.
-
-- Singleplayer_levels: Done
-- Singleplayer_endless: Done
-- ui + cameras: Done
-- Index: Done
-- Settings: Done
-- Multiplayer_backend: Done
-- Multiplayer_gameplay: In progress
 
 # Credits
 
