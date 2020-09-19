@@ -1190,19 +1190,26 @@ class EndlessMultiPlayer(State):
         opponent_box = self.height_font.render(f'{self.opponent_name}:{y}', 1, (0,0,0))
         opponent_box_size = opponent_box.get_size()
 
-        y_opponent_box = min(SIZE[1], max(0, y))
-        pygame.draw.rect(screen, (0, 255, 150), (0, y_opponent_box, opponent_box_size[0], 20))
-        screen.blit(opponent_box, (0, y))
+        #y_opponent_box = min(SIZE[1] - opponent_box_size[1], y)
+        #print(y_opponent_box)
+        pygame.draw.rect(screen, (0, 255, 150), (0, y+self.camera.rect.y, opponent_box_size[0], 20))
+        screen.blit(opponent_box, (0, y+self.camera.rect.y))
 
         if self.opponent_lost:
             screen.blit(self.end_font.render('You win', 1, (0, 255,0)), (300, 300))
             pygame.display.update()
             pygame.time.wait(2000)
+            self.lost = False
+            self.to_send['lose'] = self.lost
+            self.server_reply = self.client.update(self.to_send)
             self.manager.switch(MultiPlayerMenu(images=self.IMAGES, client=self.client, server=self.server, id=self.id))
         elif self.lost:
             screen.blit(self.end_font.render('You lose', 1, (255, 0, 0)), (300, 300))
             pygame.display.update()
             pygame.time.wait(2000)
+            self.lost = False
+            self.to_send['lose'] = self.lost
+            self.server_reply = self.client.update(self.to_send)
             self.manager.switch(MultiPlayerMenu(images=self.IMAGES, client=self.client, server=self.server, id=self.id))
 
     def update_objects(self, clock):
